@@ -18,6 +18,8 @@ class BirbWatcher:
         print("chirp chirp")
 
         self.camera = PiCamera()
+        self.camera.resolution = (2592, 1944)
+
         self.rawCapture = PiRGBArray(self.camera)
 
     def startup(self):
@@ -25,6 +27,12 @@ class BirbWatcher:
         return self.capture_photo("startup")
 
     def run(self):
+        print("Using camera settings...")
+        print("  Resolution: ", self.camera.resolution.width,  self.camera.resolution.height)
+        print("  ISO: ", self.camera.iso)
+        print("  Metering: " + self.camera.meter_mode)
+        print("  Exposure Mode: " + self.camera.exposure_mode)
+
         self.keyframe = self.simplify_image(self.startup())
 
         s = sched.scheduler(time, sleep)
@@ -88,8 +96,16 @@ class BirbWatcher:
         date = datetime.now()
         filename = date.strftime("%Y-%m-%d-%H:%M:%S") + ".jpg"
         path = "/home/pi/Public/birbs/" + filename
-        cv2.imwrite(path, image)
-        print("save to: " + path)
+        #cv2.imwrite(path, image)
+        
+        print("Capturing Image...")
+        print("  save to: " + path)
+        print("  shutter: ", self.camera.shutter_speed)
+        print("  shutter (auto): ", self.camera.exposure_speed)
+        print("  iso: ", self.camera.iso)
+        
+        self.camera.capture(path)
+        
         
 
 watcher = BirbWatcher()
