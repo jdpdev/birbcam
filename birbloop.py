@@ -5,6 +5,7 @@ from picamera import PiCamera
 import cv2
 import sched
 import imutils
+from datetime import datetime
 
 WATCHER_STEP = 5
 
@@ -37,8 +38,8 @@ class BirbWatcher:
 
         # for debug
         if not save_to is None:
-            cv2.imwrite(save_to + "-cv.jpg", image)
-            self.camera.capture(save_to + "-picamera.jpg")
+            cv2.imwrite("debug/" + save_to + "-cv.jpg", image)
+            self.camera.capture("debug/" + save_to + "-picamera.jpg")
 
         return image
 
@@ -50,7 +51,7 @@ class BirbWatcher:
 
     def compare_with_keyframe(self, image):
         delta = cv2.absdiff(self.keyframe, image)
-        cv2.imwrite("delta.jpg", delta)
+        cv2.imwrite("debug/delta.jpg", delta)
         thresh = cv2.threshold(delta, 25, 255, cv2.THRESH_BINARY)[1]
 
         thresh = cv2.dilate(thresh, None, iterations=2)
@@ -79,9 +80,17 @@ class BirbWatcher:
 
         if self.compare_with_keyframe(simple):
             print("found one!")
-            cv2.imwrite("bird-match-cv.jpg", image)
+            self.save_bird_pic(image)
 
         sc.enter(WATCHER_STEP, 1, self.watch_loop, (sc,))
+
+    def save_bird_pic(self, image):
+        date = datetime.now()
+        filename = date.strftime("%Y-%m-%d-%H:%M:%S") + ".jpg"
+        path = "/home/pi/Public/birbs/" + filename
+        cv2.imwrite(path, image)
+        print("save to: " + path)
+        
 
 watcher = BirbWatcher()
 watcher.run()
