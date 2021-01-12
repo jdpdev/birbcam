@@ -5,9 +5,21 @@ from picamera import PiCamera
 import cv2
 import sched
 import imutils
+import argparse
+import sys
+import logging
 from datetime import datetime
 
 WATCHER_STEP = 5
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-f", "--file", default=None, help="path to the log file")
+args = vars(ap.parse_args())
+
+if not args.get('file') is None:
+    logging.basicConfig(level=logging.INFO, filename=args.get('file'), format='%(levelname)s: %(message)s')
+else:
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 class BirbWatcher:
     camera = None
@@ -15,7 +27,7 @@ class BirbWatcher:
     keyframe = None
 
     def __init__(self):
-        print("chirp chirp")
+        logging.info("chirp chirp")
 
         self.camera = PiCamera()
         self.camera.resolution = (2592, 1944)
@@ -27,11 +39,11 @@ class BirbWatcher:
         return self.capture_photo("startup")
 
     def run(self):
-        print("Using camera settings...")
-        print("  Resolution: ", self.camera.resolution.width,  self.camera.resolution.height)
-        print("  ISO: ", self.camera.iso)
-        print("  Metering: " + self.camera.meter_mode)
-        print("  Exposure Mode: " + self.camera.exposure_mode)
+        logging.info("Using camera settings...")
+        logging.info("  Resolution: %d,%d", self.camera.resolution.width,  self.camera.resolution.height)
+        logging.info("  ISO: %d", self.camera.iso)
+        logging.info("  Metering: " + self.camera.meter_mode)
+        logging.info("  Exposure Mode: " + self.camera.exposure_mode)
 
         self.keyframe = self.simplify_image(self.startup())
 
@@ -81,13 +93,13 @@ class BirbWatcher:
         return False
 
     def watch_loop(self, sc):
-        print("looking for birbs")
+        logging.info("looking for birbs")
 
         image = self.capture_photo()
         simple = self.simplify_image(image)
 
         if self.compare_with_keyframe(simple):
-            print("found one!")
+            logging.info("found one!")
             self.save_bird_pic(image)
 
         sc.enter(WATCHER_STEP, 1, self.watch_loop, (sc,))
@@ -98,11 +110,11 @@ class BirbWatcher:
         path = "/home/pi/Public/birbs/" + filename
         #cv2.imwrite(path, image)
         
-        print("Capturing Image...")
-        print("  save to: " + path)
-        print("  shutter: ", self.camera.shutter_speed)
-        print("  shutter (auto): ", self.camera.exposure_speed)
-        print("  iso: ", self.camera.iso)
+        logging.info("Capturing Image...")
+        logging.info("  save to: " + path)
+        logging.info("  shutter: %d", self.camera.shutter_speed)
+        logging.info("  shutter (auto): %d", self.camera.exposure_speed)
+        logging.info("  iso: %d", self.camera.iso)
         
         self.camera.capture(path)
         
