@@ -118,9 +118,11 @@ class BirbWatcher:
         image = self.capture_photo()
         simple = self.simplify_image(image)
 
+        self.save_rolling_image()
+
         if self.compare_with_keyframe(simple):
             logging.info("found one!")
-            self.save_bird_pic(image)
+            self.save_bird_pic()
             self.loopsSinceBirb = 0
         else:
             self.loopsSinceBirb += 1
@@ -138,11 +140,14 @@ class BirbWatcher:
         path = "/home/pi/Public/birbs/" + name + "/" + filename
         cv2.imwrite(path, image)
 
-    def save_bird_pic(self, image):
+    def save_rolling_image(self):
+        path = "/home/pi/Public/birbs/live.jpg"
+        self.camera.capture(path)
+
+    def save_bird_pic(self):
         date = datetime.now()
         filename = date.strftime("%Y-%m-%d-%H:%M:%S") + ".jpg"
         path = "/home/pi/Public/birbs/" + filename
-        #cv2.imwrite(path, image)
         
         logging.info("Capturing Image...")
         logging.info("  save to: " + path)
