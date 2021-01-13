@@ -25,6 +25,7 @@ class BirbWatcher:
     camera = None
     rawCapture = None
     keyframe = None
+    loopsSinceBirb = 0
 
     def __init__(self):
         logging.info("chirp chirp")
@@ -35,10 +36,28 @@ class BirbWatcher:
         self.rawCapture = PiRGBArray(self.camera)
 
     def startup(self):
-        sleep(1)
         return self.capture_photo("startup")
 
     def run(self):
+        self.take_keyframe()
+
+        s = sched.scheduler(time, sleep)
+        s.enter(WATCHER_STEP, 1, self.watch_loop, (s,))
+        s.run()
+
+    def take_keyframe(self):
+        self.camera.iso = 200
+        self.camera.exposure_mode = 'auto'
+        self.camera.awb_mode = 'auto'
+
+        sleep(2)
+
+        self.camera.shutter_speed = self.camera.exposure_speed
+        self.camera.exposure_mode = 'off'
+        g = self.camera.awb_gains
+        self.camera.awb_mode = 'off'
+        self.camera.awb_gains = g
+
         logging.info("Using camera settings...")
         logging.info("  Resolution: %d,%d", self.camera.resolution.width,  self.camera.resolution.height)
         logging.info("  ISO: %d", self.camera.iso)
@@ -46,10 +65,7 @@ class BirbWatcher:
         logging.info("  Exposure Mode: " + self.camera.exposure_mode)
 
         self.keyframe = self.simplify_image(self.startup())
-
-        s = sched.scheduler(time, sleep)
-        s.enter(WATCHER_STEP, 1, self.watch_loop, (s,))
-        s.run()
+        cv2.imwrite("debug/keyframe.jpg", self.keyframe)
 
     def capture_photo(self, save_to=None):
         self.rawCapture = PiRGBArray(self.camera)
@@ -71,8 +87,10 @@ class BirbWatcher:
 
     def compare_with_keyframe(self, image):
         delta = cv2.absdiff(self.keyframe, image)
+        cv2.imwrite("debug/comparer.jpg", image)
         cv2.imwrite("debug/delta.jpg", delta)
-        thresh = cv2.threshold(delta, 25, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(delta, 90, 255, cv2.THRESH_BINARY)[1]
+        cv2.imwrite("debug/thresh.jpg", thresh)
 
         thresh = cv2.dilate(thresh, None, iterations=2)
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
@@ -81,13 +99,15 @@ class BirbWatcher:
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 500:
+            if cv2.contourArea(c) < 800:
                 continue
             # compute the bounding box for the contour, draw it on the frame,
             # and update the text
             #(x, y, w, h) = cv2.boundingRect(c)
             #cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             #text = "Occupied"
+            self.save_bird_pic_debug(delta, "delta")
+            self.save_bird_pic_debug(thresh, "thresh")
             return True
 
         return False
@@ -101,8 +121,22 @@ class BirbWatcher:
         if self.compare_with_keyframe(simple):
             logging.info("found one!")
             self.save_bird_pic(image)
+            self.loopsSinceBirb = 0
+        else:
+            self.loopsSinceBirb += 1
+
+        if self.loopsSinceBirb > 6:
+            logging.info("updating keyframe")
+            self.take_keyframe()
+            self.loopsSinceBirb = 0
 
         sc.enter(WATCHER_STEP, 1, self.watch_loop, (sc,))
+
+    def save_bird_pic_debug(self, image, name):
+        date = datetime.now()
+        filename = date.strftime("%Y-%m-%d-%H:%M:%S") + ".jpg"
+        path = "/home/pi/Public/birbs/" + name + "/" + filename
+        cv2.imwrite(path, image)
 
     def save_bird_pic(self, image):
         date = datetime.now()
