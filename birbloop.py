@@ -99,7 +99,7 @@ class BirbWatcher:
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 800:
+            if cv2.contourArea(c) < 600:
                 continue
             # compute the bounding box for the contour, draw it on the frame,
             # and update the text
