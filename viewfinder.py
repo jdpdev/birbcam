@@ -8,6 +8,7 @@ import numpy as np
 
 previewResolution = (640, 480)
 mask = (0.5, 0.5)
+windowName = 'preview'
 
 def get_next_exposure(exp):
     return get_next_enum(PiCamera.EXPOSURE_MODES, exp)
@@ -67,6 +68,29 @@ def mask_contract_vertical(size):
         y -= 0.05
     return (size[0], y)
 
+def click_size_mask(event, x, y, flags, param):
+    if event != cv2.EVENT_LBUTTONDOWN:
+        return
+
+    print("left mouse down: ", x, ", ", y)
+
+    width = previewResolution[0]
+    height = previewResolution[1]
+    cx = int(width / 2)
+    cy = int(height / 2)
+    print("  ", cx, ", ", cy)
+    dx = cx - x
+    dy = cy - y
+    print("  ", dx, ", ", dy)
+    mx = abs(dx / width) * 2
+    my = abs(dy / height) * 2
+    print("  ", mx, ", ", my)
+
+    global mask
+    mask = (mx, my)
+
+cv2.namedWindow(windowName)
+cv2.setMouseCallback(windowName, click_size_mask)
 
 camera = PiCamera()
 camera.resolution = previewResolution
@@ -80,15 +104,15 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     draw_mask(image, mask, previewResolution)
 
-    cv2.putText(image,"(E)xposure Mode: " + camera.exposure_mode,(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 0, 255),1)
-    cv2.putText(image,"Shutter: %d" % camera.exposure_speed,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 0, 255),1)
-    cv2.putText(image,"(I)SO: %d" % camera.iso,(20, 60),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 0, 255),1)
-    cv2.putText(image,"(M)eter: " + camera.meter_mode,(20, 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 0, 255),1)
+    cv2.putText(image,"(E)xposure Mode: " + camera.exposure_mode,(20, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 255),1)
+    cv2.putText(image,"Shutter: %d" % camera.exposure_speed,(20, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 255),1)
+    cv2.putText(image,"(I)SO: %d" % camera.iso,(20, 60),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 255),1)
+    cv2.putText(image,"Meter: " + camera.meter_mode,(20, 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 255),1)
 
     (x, y, w, h) = get_meter_rect(camera.meter_mode)
     cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
 
-    cv2.imshow("Frame", image)
+    cv2.imshow(windowName, image)
     key = cv2.waitKey(1) & 0xFF
 
     rawCapture.truncate(0)
@@ -102,8 +126,8 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     if key == ord("e"):
         camera.exposure_mode = get_next_exposure(camera.exposure_mode)
 
-    if key == ord("m"):
-        camera.meter_mode = get_next_meter(camera.meter_mode)
+    #if key == ord("m"):
+    #    camera.meter_mode = get_next_meter(camera.meter_mode)
 
     if key == ord("v"):
         mask = mask_contract_horizontal(mask)
