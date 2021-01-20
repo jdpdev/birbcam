@@ -117,7 +117,7 @@ class BirbWatcher:
         delta = cv2.absdiff(self.keyframe, image)
         cv2.imwrite("debug/comparer.jpg", image)
         cv2.imwrite("debug/delta.jpg", delta)
-        thresh = cv2.threshold(delta, 40, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(delta, 70, 255, cv2.THRESH_BINARY)[1]
         cv2.imwrite("debug/thresh.jpg", thresh)
 
         thresh = cv2.dilate(thresh, None, iterations=2)
