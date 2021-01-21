@@ -14,10 +14,12 @@ from datetime import datetime
 WATCHER_STEP = 5
 FULL_RES = (2592, 1952)
 CALC_RES = (512, 384)
+debugMode = False
 
 def setup_logging():
     ap = argparse.ArgumentParser()
     ap.add_argument("-f", "--file", default=None, help="path to the log file")
+    ap.add_argument("-d", "--debug", help="debug mode", action='store_true')
     args = vars(ap.parse_args())
 
     if not args.get('file') is None:
@@ -25,10 +27,19 @@ def setup_logging():
     else:
         logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
+    global debugMode
+    debugMode = args.get('debug')
+    
+    if debugMode:
+        logging.info("Using Debug Mode")
+
 class BirbWatcher:
     camera = None
     rawCapture = None
+    testImage = None
     keyframe = None
+    delta = None
+    threshold = None
     loopsSinceBirb = 0
     comparisonMask = (0,0)
 
@@ -53,12 +64,21 @@ class BirbWatcher:
         s.enter(WATCHER_STEP, 1, self.watch_loop, (s,))
         s.run()
 
+        #if debugMode:
+        #    while True:
+                #itop = cv2.hconcat([simple, self.keyframe])
+                #ibotom = cv2.hconcat([self.delta, self.threshold])
+                #idebug = cv2.vconcat([itop, ibottom])
+        #        cv2.imshow('debug', self.testImage)
+
     def watch_loop(self, sc):
         #logging.info("looking for birbs")
 
         self.save_rolling_image()
         image = self.capture_photo()
         simple = self.simplify_image(image)
+
+        self.testImage = image
 
         if self.compare_with_keyframe(simple):
             self.save_bird_pic()
@@ -75,6 +95,7 @@ class BirbWatcher:
         self.camera.iso = 200
         self.camera.exposure_mode = 'auto'
         self.camera.awb_mode = 'auto'
+        self.camera.meter_mode = 'spot'
 
         sleep(2)
 
@@ -121,6 +142,10 @@ class BirbWatcher:
         cv2.imwrite("debug/thresh.jpg", thresh)
 
         thresh = cv2.dilate(thresh, None, iterations=2)
+
+        self.delta = delta
+        self.threshold = thresh
+
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
             cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
