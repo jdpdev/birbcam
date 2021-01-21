@@ -1,14 +1,18 @@
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 from common import draw_mask
-import time
+from time import time, sleep
 import cv2
 import numpy as np
 import imutils
 import argparse
 import sys
 import logging
+import sched
 from datetime import datetime
+
+LIVE_CAMERA_STEP = 10
+FULL_PICTURE_STEP = 10
 
 previewResolution = (640, 480)
 FULL_RES = (2592, 1952)
@@ -16,7 +20,10 @@ mask = (0.5, 0.5)
 windowName = 'birbcam'
 debugMode = False
 average = None
-lastCaptureTicks = 0
+takeFullPicture = False
+fullPictureScheduler = None
+takeLivePicture = False
+livePictureScheduler = None
 
 def setup_logging():
     ap = argparse.ArgumentParser()
@@ -40,14 +47,39 @@ def process_image(image):
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
     return gray
 
+def current_filestamp():
+    date = datetime.now()
+    return date.strftime("%Y-%m-%d-%H:%M:%S")
+
+def save_location():
+    return "/home/pi/Public/birbs/"
+
+def toggle_full_picture(sc):
+    global takeFullPicture
+    global fullPictureScheduler
+    takeFullPicture = True
+    fullPictureScheduler = sc
+
+def start_full_picture():
+    s = sched.scheduler(time, sleep)
+    s.enter(FULL_PICTURE_STEP, 1, toggle_full_picture, (s,))
+    s.run()
+
+def schedule_live_picture():
+    livePictureScheduler.enter(FULL_PICTURE_STEP, 1, toggle_full_picture, (livePictureScheduler,))
+
 def take_full_picture(camera):
     date = datetime.now()
-    filename = date.strftime("%Y-%m-%d-%H:%M:%S") + ".jpg"
-    path = "/home/pi/Public/birbs/" + filename
+    filename = current_filestamp() + ".jpg"
+    path = save_location() + filename
+    takeFullPicture = False
     
     camera.resolution = FULL_RES
     camera.capture(path)
     camera.resolution = previewResolution
+    rawCapture.truncate(0)
+
+    schedule_live_picture()
 
     global debugMode
     if not debugMode:
@@ -59,7 +91,34 @@ def take_full_picture(camera):
     logging.info("  shutter (auto): %d", camera.exposure_speed)
     logging.info("  iso: %d", camera.iso)
 
+def toggle_live_picture(sc):
+    global takeLivePicture
+    global livePictureScheduler
+    takeLivePicture = True
+    livePictureScheduler = sc
+
+def start_live_picture():
+    s = sched.scheduler(time, sleep)
+    s.enter(LIVE_CAMERA_STEP, 1, toggle_live_picture, (s,))
+    s.run()
+
+def schedule_live_picture():
+    livePictureScheduler.enter(LIVE_CAMERA_STEP, 1, toggle_live_picture, (livePictureScheduler,))
+
+def take_live_picture(camera):
+    global takeLivePicture
+    takeLivePicture = False
+
+    camera.resolution = (800,600)
+    camera.capture(save_location() + "live.jpg")
+    camera.resolution = previewResolution
+    rawCapture.truncate(0)
+
+    schedule_live_picture()
+
 setup_logging()
+start_live_picture()
+start_full_picture()
 
 camera = PiCamera()
 camera.resolution = previewResolution
@@ -71,7 +130,7 @@ camera.exposure_mode = 'auto'
 camera.awb_mode = 'auto'
 camera.meter_mode = 'spot'
 
-time.sleep(2)
+sleep(2)
 
 camera.shutter_speed = camera.exposure_speed
 camera.exposure_mode = 'off'
@@ -118,11 +177,13 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         shouldTrigger = True
 
     # capture full
-    if shouldTrigger and lastCaptureTicks > 60:
+    didTakeFullPicture = False
+    if shouldTrigger and takeFullPicture:
         take_full_picture(camera)
-        lastCaptureTicks = 0
-    else:
-        lastCaptureTicks += 1
+        didTakeFullPicture = True
+
+    if takeLivePicture:
+        take_live_picture(camera)
 
     # visualize
     convertAvg = cv2.cvtColor(convertAvg, cv2.COLOR_GRAY2BGR)
@@ -134,6 +195,11 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     quad = cv2.vconcat([rtop, rbottom])
     quad = cv2.resize(quad, (800, 600))
     cv2.imshow('processors', quad)
+
+    if debugMode and didTakeFullPicture:
+        stamp = current_filestamp()
+        cv2.imwrite(save_location() + "/debug/" + stamp + ".jpg", quad)
+
     #cv2.imshow('stream', now)
 
     key = cv2.waitKey(1) & 0xFF
