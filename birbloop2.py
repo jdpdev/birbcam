@@ -15,7 +15,8 @@ LIVE_CAMERA_STEP = 10
 FULL_PICTURE_STEP = 10
 
 previewResolution = (640, 480)
-FULL_RES = (2592, 1952)
+FULL_RES = (3280, 2464)
+#FULL_RES = (4056, 3040)
 mask = (0.5, 0.5)
 windowName = 'birbcam'
 debugMode = False
@@ -118,7 +119,7 @@ setup_logging()
 
 camera = PiCamera()
 camera.resolution = previewResolution
-camera.framerate = 30;
+camera.framerate = 10;
 camera.iso = 200
 rawCapture = PiRGBArray(camera, size=previewResolution)
 
@@ -128,8 +129,8 @@ camera.awb_mode = 'auto'
 
 sleep(2)
 
-camera.shutter_speed = camera.exposure_speed
-camera.exposure_mode = 'off'
+#camera.shutter_speed = camera.exposure_speed
+#camera.exposure_mode = 'off'
 g = camera.awb_gains
 camera.awb_mode = 'off'
 camera.awb_gains = g
