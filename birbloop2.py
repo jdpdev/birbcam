@@ -20,10 +20,11 @@ mask = (0.5, 0.5)
 windowName = 'birbcam'
 debugMode = False
 average = None
+scheduler = sched.scheduler(time, sleep)
 takeFullPicture = False
-fullPictureScheduler = None
 takeLivePicture = False
-livePictureScheduler = None
+nextLivePictureTime = 0
+nextFullPictureTime = 0
 
 def setup_logging():
     ap = argparse.ArgumentParser()
@@ -55,23 +56,26 @@ def save_location():
     return "/home/pi/Public/birbs/"
 
 def toggle_full_picture(sc):
+    logging.info('Ready for full picture')
     global takeFullPicture
     global fullPictureScheduler
     takeFullPicture = True
     fullPictureScheduler = sc
 
-def start_full_picture():
-    s = sched.scheduler(time, sleep)
-    s.enter(FULL_PICTURE_STEP, 1, toggle_full_picture, (s,))
-    s.run()
+def schedule_full_picture():
+    global nextFullPictureTime
+    nextFullPictureTime = time() + FULL_PICTURE_STEP
 
-def schedule_live_picture():
-    livePictureScheduler.enter(FULL_PICTURE_STEP, 1, toggle_full_picture, (livePictureScheduler,))
+def is_full_picture_time():
+    global nextFullPictureTime
+    return time() >= nextFullPictureTime
 
 def take_full_picture(camera):
     date = datetime.now()
     filename = current_filestamp() + ".jpg"
     path = save_location() + filename
+
+    global takeFullPicture
     takeFullPicture = False
     
     camera.resolution = FULL_RES
@@ -79,7 +83,7 @@ def take_full_picture(camera):
     camera.resolution = previewResolution
     rawCapture.truncate(0)
 
-    schedule_live_picture()
+    schedule_full_picture()
 
     global debugMode
     if not debugMode:
@@ -91,19 +95,13 @@ def take_full_picture(camera):
     logging.info("  shutter (auto): %d", camera.exposure_speed)
     logging.info("  iso: %d", camera.iso)
 
-def toggle_live_picture(sc):
-    global takeLivePicture
-    global livePictureScheduler
-    takeLivePicture = True
-    livePictureScheduler = sc
-
-def start_live_picture():
-    s = sched.scheduler(time, sleep)
-    s.enter(LIVE_CAMERA_STEP, 1, toggle_live_picture, (s,))
-    s.run()
-
 def schedule_live_picture():
-    livePictureScheduler.enter(LIVE_CAMERA_STEP, 1, toggle_live_picture, (livePictureScheduler,))
+    global nextLivePictureTime
+    nextLivePictureTime = time() + LIVE_CAMERA_STEP
+
+def is_live_picture_time():
+    global nextLivePictureTime
+    return time() >= nextLivePictureTime
 
 def take_live_picture(camera):
     global takeLivePicture
@@ -117,8 +115,6 @@ def take_live_picture(camera):
     schedule_live_picture()
 
 setup_logging()
-start_live_picture()
-start_full_picture()
 
 camera = PiCamera()
 camera.resolution = previewResolution
@@ -128,7 +124,7 @@ rawCapture = PiRGBArray(camera, size=previewResolution)
 
 camera.exposure_mode = 'auto'
 camera.awb_mode = 'auto'
-camera.meter_mode = 'spot'
+#camera.meter_mode = 'spot'
 
 sleep(2)
 
@@ -169,7 +165,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     shouldTrigger = False
     for c in cnts:
-        if cv2.contourArea(c) < 300:
+        if cv2.contourArea(c) < 500:
             continue
         
         (x, y, w, h) = cv2.boundingRect(c)
@@ -178,29 +174,28 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     # capture full
     didTakeFullPicture = False
-    if shouldTrigger and takeFullPicture:
+    if shouldTrigger and is_full_picture_time():
         take_full_picture(camera)
         didTakeFullPicture = True
 
-    if takeLivePicture:
+    if is_live_picture_time():
         take_live_picture(camera)
 
     # visualize
-    convertAvg = cv2.cvtColor(convertAvg, cv2.COLOR_GRAY2BGR)
-    frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
-    thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+    if debugMode:
+        convertAvg = cv2.cvtColor(convertAvg, cv2.COLOR_GRAY2BGR)
+        frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
+        thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-    rtop = cv2.hconcat([now, convertAvg])
-    rbottom = cv2.hconcat([frameDelta, thresh])
-    quad = cv2.vconcat([rtop, rbottom])
-    quad = cv2.resize(quad, (800, 600))
-    cv2.imshow('processors', quad)
+        rtop = cv2.hconcat([now, convertAvg])
+        rbottom = cv2.hconcat([frameDelta, thresh])
+        quad = cv2.vconcat([rtop, rbottom])
+        quad = cv2.resize(quad, (800, 600))
+        cv2.imshow('processors', quad)
 
-    if debugMode and didTakeFullPicture:
-        stamp = current_filestamp()
-        cv2.imwrite(save_location() + "/debug/" + stamp + ".jpg", quad)
-
-    #cv2.imshow('stream', now)
+        if didTakeFullPicture:
+            stamp = current_filestamp()
+            cv2.imwrite(save_location() + "/debug/" + stamp + ".jpg", quad)
 
     key = cv2.waitKey(1) & 0xFF
 
