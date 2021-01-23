@@ -1,7 +1,8 @@
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-from common import draw_mask
+#from common import draw_mask
 from time import time, sleep
+import common
 import cv2
 import numpy as np
 import imutils
@@ -44,7 +45,7 @@ def setup_logging():
     global debugMode
     global noCaptureMode
     debugMode = args.get('debug')
-    noCaptureMode = True#args.get('no-capture')
+    #noCaptureMode = True#args.get('no-capture')
 
     if noCaptureMode:
         logging.info("Using No Capture Mode")
@@ -82,7 +83,7 @@ def is_full_picture_time():
 def take_full_picture(camera):
     global noCaptureMode
     if noCaptureMode:
-        return
+        return False
 
     date = datetime.now()
     filename = current_filestamp() + ".jpg"
@@ -100,13 +101,15 @@ def take_full_picture(camera):
 
     global debugMode
     if not debugMode:
-        return
+        return True
 
     logging.info("Capturing Image...")
     logging.info("  save to: " + path)
     logging.info("  shutter: %d", camera.shutter_speed)
     logging.info("  shutter (auto): %d", camera.exposure_speed)
     logging.info("  iso: %d", camera.iso)
+
+    return True
 
 def schedule_live_picture():
     global nextLivePictureTime
@@ -152,6 +155,13 @@ def draw_histogram(key, now):
     cv2.putText(blank,"%d" % compare,(530, 40),cv2.FONT_HERSHEY_SIMPLEX,1,(255, 255, 255),2)
 
     return blank
+
+def debug_frame(frame, key):
+    (ahist, adata) = common.build_histogram(frame)
+    (bhist, bdata) = common.build_histogram(key)
+    compare = common.compare_histograms(ahist, bhist)
+
+    logging.info("Histogram comparison: %d" % compare)
 
 setup_logging()
 
@@ -214,8 +224,10 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     # capture full
     didTakeFullPicture = False
     if shouldTrigger and is_full_picture_time():
-        take_full_picture(camera)
-        didTakeFullPicture = True
+        didTakeFullPicture = take_full_picture(camera)
+
+        if didTakeFullPicture and debugMode:
+            debug_frame(gray, convertAvg)
 
     if is_live_picture_time():
         take_live_picture(camera)
