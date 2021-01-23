@@ -15,11 +15,12 @@ LIVE_CAMERA_STEP = 10
 FULL_PICTURE_STEP = 10
 
 previewResolution = (640, 480)
-FULL_RES = (3280, 2464)
-#FULL_RES = (4056, 3040)
+#FULL_RES = (3280, 2464)
+FULL_RES = (4056, 3040)
 mask = (0.5, 0.5)
 windowName = 'birbcam'
 debugMode = False
+noCaptureMode = False
 average = None
 scheduler = sched.scheduler(time, sleep)
 takeFullPicture = False
@@ -31,6 +32,8 @@ def setup_logging():
     ap = argparse.ArgumentParser()
     ap.add_argument("-f", "--file", default=None, help="path to the log file")
     ap.add_argument("-d", "--debug", help="debug mode", action='store_true')
+    ap.add_argument("-n", "--no-capture", help="do not capture photos", action='store_true')
+    #parsed = ap.parse_args()
     args = vars(ap.parse_args())
 
     if not args.get('file') is None:
@@ -39,7 +42,12 @@ def setup_logging():
         logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     global debugMode
+    global noCaptureMode
     debugMode = args.get('debug')
+    noCaptureMode = True#args.get('no-capture')
+
+    if noCaptureMode:
+        logging.info("Using No Capture Mode")
     
     if debugMode:
         logging.info("Using Debug Mode")
@@ -72,6 +80,10 @@ def is_full_picture_time():
     return time() >= nextFullPictureTime
 
 def take_full_picture(camera):
+    global noCaptureMode
+    if noCaptureMode:
+        return
+
     date = datetime.now()
     filename = current_filestamp() + ".jpg"
     path = save_location() + filename
@@ -105,6 +117,10 @@ def is_live_picture_time():
     return time() >= nextLivePictureTime
 
 def take_live_picture(camera):
+    global noCaptureMode
+    if noCaptureMode:
+        return
+
     global takeLivePicture
     takeLivePicture = False
 
@@ -114,6 +130,28 @@ def take_live_picture(camera):
     rawCapture.truncate(0)
 
     schedule_live_picture()
+
+def draw_histogram(key, now):
+    blank = np.zeros((previewResolution[1],previewResolution[0],3), np.uint8)
+
+    key_hist = cv2.calcHist([key], [0], None, [256], [0,256])
+    cv2.normalize(key_hist, key_hist, 0, 255, cv2.NORM_MINMAX)
+    key_data = np.int32(np.around(key_hist))
+
+    for x, y in enumerate(key_data):
+        cv2.line(blank, (x * 2,240),(x * 2,240-y),(255,255,255))
+
+    now_hist = cv2.calcHist([now], [0], None, [256], [0,256])
+    cv2.normalize(now_hist, now_hist, 0, 255, cv2.NORM_MINMAX)
+    now_data = np.int32(np.around(now_hist))
+
+    for x, y in enumerate(now_data):
+        cv2.line(blank, (x * 2,480),(x * 2,480-y),(255,255,255))
+
+    compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
+    cv2.putText(blank,"%d" % compare,(530, 40),cv2.FONT_HERSHEY_SIMPLEX,1,(255, 255, 255),2)
+
+    return blank
 
 setup_logging()
 
@@ -125,12 +163,12 @@ rawCapture = PiRGBArray(camera, size=previewResolution)
 
 camera.exposure_mode = 'auto'
 camera.awb_mode = 'auto'
-#camera.meter_mode = 'spot'
+camera.meter_mode = 'spot'
 
 sleep(2)
 
-#camera.shutter_speed = camera.exposure_speed
-#camera.exposure_mode = 'off'
+camera.shutter_speed = camera.exposure_speed
+camera.exposure_mode = 'off'
 g = camera.awb_gains
 camera.awb_mode = 'off'
 camera.awb_gains = g
@@ -156,7 +194,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     cv2.accumulateWeighted(gray, average, 0.05)
     convertAvg = cv2.convertScaleAbs(average)
     frameDelta = cv2.absdiff(gray, convertAvg)
-    thresh = cv2.threshold(frameDelta, 70, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(frameDelta, 90, 255, cv2.THRESH_BINARY)[1]
     thresh = cv2.dilate(thresh, None, iterations=2)
 
     # detect
@@ -166,7 +204,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     shouldTrigger = False
     for c in cnts:
-        if cv2.contourArea(c) < 500:
+        if cv2.contourArea(c) < 600:
             continue
         
         (x, y, w, h) = cv2.boundingRect(c)
@@ -188,7 +226,9 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        rtop = cv2.hconcat([now, convertAvg])
+        histogram = draw_histogram(gray, convertAvg)
+
+        rtop = cv2.hconcat([now, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
         quad = cv2.vconcat([rtop, rbottom])
         quad = cv2.resize(quad, (800, 600))
