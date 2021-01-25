@@ -45,7 +45,7 @@ def setup_logging():
     global debugMode
     global noCaptureMode
     debugMode = args.get('debug')
-    #noCaptureMode = True#args.get('no-capture')
+    noCaptureMode = args.get('no_capture')
 
     if noCaptureMode:
         logging.info("Using No Capture Mode")
