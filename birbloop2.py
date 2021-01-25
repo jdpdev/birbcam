@@ -191,13 +191,70 @@ if debugMode:
     logging.info("  Exposure Mode: " + camera.exposure_mode)
 
 # **************************************
+#   Focus assist
+# **************************************
+focusWindowName = "Focus Assist"
+focusWindowResolution = (1024, 768)
+focusStart = (312, 284)
+focusEnd = (712, 484)
+isDragging = False
+
+def focus_click_event(event, x, y, flags, param):
+    global focusStart
+    global focusEnd
+    global isDragging
+    
+    if event == cv2.EVENT_LBUTTONDOWN:
+        focusStart = (x, y)
+        focusEnd = (x, y)
+        isDragging = True
+        return
+
+    if event == cv2.EVENT_LBUTTONUP:
+        isDragging = False
+        return
+
+    if event == cv2.EVENT_MOUSEMOVE:
+        if isDragging:
+            focusEnd = (x, y)
+        return
+
+cv2.namedWindow(focusWindowName)
+cv2.setMouseCallback(focusWindowName, focus_click_event)
+
+camera.resolution = focusWindowResolution
+rawCapture = PiRGBArray(camera, size=focusWindowResolution)
+
+for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+
+    image = frame.array
+    rawCapture.truncate(0)
+
+    laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
+
+    cv2.rectangle(image, (focusStart[0], focusStart[1] - 40), (focusStart[0] + 120, focusStart[1]), (255, 0, 255), -1)
+    cv2.rectangle(image, focusStart, focusEnd, (255, 0, 255), 2)
+    cv2.putText(image, str(int(laplacian_var)), (focusStart[0] + 5, focusStart[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    cv2.imshow(focusWindowName, image)
+
+    key = cv2.waitKey(1) & 0xFF
+
+    if key == ord("q"):
+        break
+
+    if key == ord("x"):
+        sys.exit()
+
+cv2.destroyAllWindows()
+
+# **************************************
 #   Set mask
 # **************************************
 maskWindowName = "Set Detection Mask"
 maskWindowResolution = (800, 600)
 mask = (0.5, 0.5)
 
-def click_event(event, x, y, flags, param):
+def mask_click_event(event, x, y, flags, param):
     if event != cv2.EVENT_LBUTTONDOWN:
         return
 
@@ -206,7 +263,7 @@ def click_event(event, x, y, flags, param):
     mask = common.change_mask_size(x, y, maskWindowResolution)
 
 cv2.namedWindow(maskWindowName)
-cv2.setMouseCallback(maskWindowName, click_event)
+cv2.setMouseCallback(maskWindowName, mask_click_event)
 
 camera.resolution = maskWindowResolution
 rawCapture = PiRGBArray(camera, size=maskWindowResolution)
@@ -223,6 +280,9 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     if key == ord("q"):
         break
+
+    if key == ord("x"):
+        sys.exit()
 
 cv2.destroyAllWindows()
 
