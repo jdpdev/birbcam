@@ -134,25 +134,26 @@ def take_live_picture(camera):
 
     schedule_live_picture()
 
-def draw_histogram(key, now):
-    blank = np.zeros((previewResolution[1],previewResolution[0],3), np.uint8)
+def draw_histogram(key, now, resolution):
+    halfHeight = int(resolution[1] / 2)
+    blank = np.zeros((resolution[1],resolution[0],3), np.uint8)
 
     key_hist = cv2.calcHist([key], [0], None, [256], [0,256])
-    cv2.normalize(key_hist, key_hist, 0, 255, cv2.NORM_MINMAX)
-    key_data = np.int32(np.around(key_hist))
+    #cv2.normalize(key_hist, key_hist, 0, halfHeight, cv2.NORM_MINMAX)
+    #key_data = np.int32(np.around(key_hist))
 
-    for x, y in enumerate(key_data):
-        cv2.line(blank, (x * 2,240),(x * 2,240-y),(255,255,255))
+    #for x, y in enumerate(key_data):
+    #    cv2.line(blank, (x * 2,halfHeight),(x * 2,halfHeight-y),(255,255,255))
 
     now_hist = cv2.calcHist([now], [0], None, [256], [0,256])
-    cv2.normalize(now_hist, now_hist, 0, 255, cv2.NORM_MINMAX)
-    now_data = np.int32(np.around(now_hist))
+    #cv2.normalize(now_hist, now_hist, 0, halfHeight, cv2.NORM_MINMAX)
+    #now_data = np.int32(np.around(now_hist))
 
-    for x, y in enumerate(now_data):
-        cv2.line(blank, (x * 2,480),(x * 2,480-y),(255,255,255))
+    #for x, y in enumerate(now_data):
+    #    cv2.line(blank, (x * 2,resolution[1]),(x * 2,resolution[1]-y),(255,255,255))
 
     compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
-    cv2.putText(blank,"%d" % compare,(530, 40),cv2.FONT_HERSHEY_SIMPLEX,1,(255, 255, 255),2)
+    cv2.putText(blank,"%d" % compare,(30, 30),cv2.FONT_HERSHEY_SIMPLEX,1,(255, 255, 255),2)
 
     return blank
 
@@ -167,7 +168,7 @@ setup_logging()
 
 camera = PiCamera()
 camera.resolution = previewResolution
-camera.framerate = 10;
+camera.framerate = 30;
 camera.iso = 200
 rawCapture = PiRGBArray(camera, size=previewResolution)
 
@@ -189,11 +190,58 @@ if debugMode:
     logging.info("  Metering: " + camera.meter_mode)
     logging.info("  Exposure Mode: " + camera.exposure_mode)
 
+# **************************************
+#   Set mask
+# **************************************
+maskWindowName = "Set Detection Mask"
+maskWindowResolution = (800, 600)
+mask = (0.5, 0.5)
+
+def click_event(event, x, y, flags, param):
+    if event != cv2.EVENT_LBUTTONDOWN:
+        return
+
+    global mask
+    global maskWindowResolution
+    mask = common.change_mask_size(x, y, maskWindowResolution)
+
+cv2.namedWindow(maskWindowName)
+cv2.setMouseCallback(maskWindowName, click_event)
+
+camera.resolution = maskWindowResolution
+rawCapture = PiRGBArray(camera, size=maskWindowResolution)
+
+for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+    
+    image = frame.array
+    common.draw_mask(image, mask, maskWindowResolution)
+    rawCapture.truncate(0)
+
+    cv2.imshow(maskWindowName, image)
+
+    key = cv2.waitKey(1) & 0xFF
+
+    if key == ord("q"):
+        break
+
+cv2.destroyAllWindows()
+
+# **************************************
+#   Capture loop
+# **************************************
+camera.resolution = previewResolution
+rawCapture = PiRGBArray(camera, size=previewResolution)
+mask_resolution = common.get_mask_real_size(mask, previewResolution)
+mask_bounds = common.get_mask_coords(mask, previewResolution)
+
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     now = rawCapture.array
     gray = process_image(now)
     now = imutils.resize(now, 640, 480)
     rawCapture.truncate(0)
+
+    now = common.extract_image_region(now, mask_bounds)
+    gray = common.extract_image_region(gray, mask_bounds)
 
     # initialize average
     if (average is None):
@@ -238,12 +286,12 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        histogram = draw_histogram(gray, convertAvg)
+        histogram = draw_histogram(gray, convertAvg, mask_resolution)
 
         rtop = cv2.hconcat([now, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
         quad = cv2.vconcat([rtop, rbottom])
-        quad = cv2.resize(quad, (800, 600))
+        #quad = cv2.resize(quad, (800, 600))
         cv2.imshow('processors', quad)
 
         if didTakeFullPicture:

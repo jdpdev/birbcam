@@ -44,3 +44,30 @@ def draw_histogram(data):
 def compare_histograms(a, b):
     compare = cv2.compareHist(a, b, cv2.HISTCMP_CHISQR)
     return compare
+
+def change_mask_size(x, y, resolution):
+    width = resolution[0]
+    height = resolution[1]
+    cx = int(width / 2)
+    cy = int(height / 2)
+    dx = cx - x
+    dy = cy - y
+    mx = abs(dx / width) * 2
+    my = abs(dy / height) * 2
+
+    return (mx, my)
+
+def get_mask_real_size(mask, resolution):
+    return (int(resolution[0] * mask[0]), int(resolution[1] * mask[1]))
+
+def get_mask_coords(mask, resolution):
+    size = get_mask_real_size(mask, resolution)
+    halfSize = {"x": size[0] / 2, "y": size[1] / 2}
+    halfRes = {"x": resolution[0] / 2, "y": resolution[1] / 2}
+    return {
+        "tl": {"x": int(halfRes["x"] - halfSize["x"]), "y": int(halfRes["y"] - halfSize["y"])},
+        "br": {"x": int(halfRes["x"] + halfSize["x"]), "y": int(halfRes["y"] + halfSize["y"])}
+    }
+
+def extract_image_region(image, bounds):
+    return image[bounds["tl"]["y"]:bounds["br"]["y"], bounds["tl"]["x"]:bounds["br"]["x"]]
