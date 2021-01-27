@@ -179,16 +179,18 @@ camera.meter_mode = 'spot'
 sleep(2)
 
 camera.shutter_speed = camera.exposure_speed
-camera.exposure_mode = 'off'
-g = camera.awb_gains
-camera.awb_mode = 'off'
-camera.awb_gains = g
+#camera.exposure_mode = 'off'
+#g = camera.awb_gains
+#camera.awb_mode = 'auto'
+#camera.awb_gains = g
 
 if debugMode:
     logging.info("Using camera settings...")
     logging.info("  ISO: %d", camera.iso)
     logging.info("  Metering: " + camera.meter_mode)
     logging.info("  Exposure Mode: " + camera.exposure_mode)
+    logging.info("  White Balance: " + camera.awb_mode)
+    logging.info("  Shutter: %d", camera.shutter_speed)
 
 # **************************************
 #   Focus assist
@@ -289,6 +291,53 @@ cv2.destroyAllWindows()
 # **************************************
 #   Capture loop
 # **************************************
+currentShutterSpeed = 0
+shutterSpeeds = [333333, 16666, 11111, 8333, 5555, 4166]
+shutterSpeedNames = ["30", "60", "90", "120", "180", "240"]
+
+isoSpeeds = [100, 200, 400, 600, 800]
+exposureComps = [-12, -6, 0, 6, 12]
+
+def next_shutter_speed(camera, delta):
+    global currentShutterSpeed
+    global shutterSpeeds
+
+    currentShutterSpeed += delta
+
+    if currentShutterSpeed >= len(shutterSpeeds):
+        currentShutterSpeed = 0
+
+    if currentShutterSpeed < 0:
+        currentShutterSpeed = len(shutterSpeeds) - 1
+
+    camera.shutter_speed = shutterSpeeds[currentShutterSpeed]
+
+def next_iso(camera, delta):
+    global isoSpeeds
+    i = isoSpeeds.index(camera.iso)
+    i += delta
+
+    if i >= len(isoSpeeds):
+        i = 0
+
+    if i < 0:
+        i = len(isoSpeeds) - 1
+
+    camera.iso = isoSpeeds[i]
+
+def next_exposure_comp(camera, delta):
+    global exposureComps
+    i = exposureComps.index(camera.exposure_compensation)
+    i += delta
+
+    if i >= len(exposureComps):
+        i = 0
+
+    if i < 0:
+        i = len(exposureComps) - 1
+
+    camera.exposure_compensation = exposureComps[i]
+
 camera.resolution = previewResolution
 rawCapture = PiRGBArray(camera, size=previewResolution)
 mask_resolution = common.get_mask_real_size(mask, previewResolution)
@@ -348,6 +397,10 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
         histogram = draw_histogram(gray, convertAvg, mask_resolution)
 
+        cv2.putText(histogram, "(S)hutter (A): " + str(shutterSpeedNames[currentShutterSpeed]), (10, 120), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "(E)xposure (W): " + str(camera.exposure_compensation), (10, 150), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "(I)SO (U): " + str(camera.iso), (10, 180), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+
         rtop = cv2.hconcat([now, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
         quad = cv2.vconcat([rtop, rbottom])
@@ -359,6 +412,24 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
             cv2.imwrite(save_location() + "/debug/" + stamp + ".jpg", quad)
 
     key = cv2.waitKey(1) & 0xFF
+
+    if key == ord("s"):
+        next_shutter_speed(camera, 1)
+
+    if key == ord("a"):
+        next_shutter_speed(camera, -1)
+
+    if key == ord("i"):
+        next_iso(camera, 1)
+
+    if key == ord("u"):
+        next_iso(camera, -1)
+
+    if key == ord("e"):
+        next_exposure_comp(camera, 1)
+
+    if key == ord("w"):
+        next_exposure_comp(camera, -1)
 
     if key == ord("q"):
         break
