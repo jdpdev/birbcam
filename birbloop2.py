@@ -317,8 +317,8 @@ cv2.destroyAllWindows()
 #   Capture loop
 # **************************************
 currentShutterSpeed = 0
-shutterSpeeds = [333333, 16666, 11111, 8333, 5555, 4166]
-shutterSpeedNames = ["30", "60", "90", "120", "180", "240"]
+shutterSpeeds = [333333, 16666, 11111, 8333, 5555, 4166, 3076, 2000, 1333, 1000]
+shutterSpeedNames = ["30", "60", "90", "120", "180", "240", "325", "500", "750", "1000"]
 
 isoSpeeds = [100, 200, 400, 600, 800]
 exposureComps = [-12, -6, 0, 6, 12]
