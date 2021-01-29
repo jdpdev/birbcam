@@ -71,3 +71,25 @@ def get_mask_coords(mask, resolution):
 
 def extract_image_region(image, bounds):
     return image[bounds["tl"]["y"]:bounds["br"]["y"], bounds["tl"]["x"]:bounds["br"]["x"]]
+
+def draw_aim_grid(image, resolution):
+    x0 = 0
+    x1 = int(resolution[0] / 3)
+    x2 = int(resolution[0] / 3) * 2
+    x3 = resolution[0]
+    xc = int(resolution[0] / 2)
+    y0 = 0
+    y1 = int(resolution[1] / 3)
+    y2 = int(resolution[1] / 3) * 2
+    y3 = resolution[1]
+    yc = int(resolution[1] / 2)
+    w = 1
+    c = (255, 0, 255)
+    cc = (255, 255, 0)
+
+    cv2.line(image, (x0, y1), (x3, y1), c, w)
+    cv2.line(image, (x0, y2), (x3, y2), c, w)
+    cv2.line(image, (x1, y0), (x1, y3), c, w)
+    cv2.line(image, (x2, y0), (x2, y3), c, w)
+    cv2.line(image, (x0, yc), (x3, yc), cc, w)
+    cv2.line(image, (xc, y0), (xc, y3), cc, w)

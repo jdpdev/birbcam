@@ -196,7 +196,7 @@ if debugMode:
 #   Focus assist
 # **************************************
 focusWindowName = "Focus Assist"
-focusWindowResolution = (1024, 768)
+focusWindowResolution = (800, 600)
 focusStart = (0, 0)
 focusEnd = focusWindowResolution
 isDragging = False
@@ -229,6 +229,7 @@ def set_zoom_rect(camera, tl, br, resolution):
     h = (br[1] - tl[1]) / focusWindowResolution[1]
     camera.zoom = (x, y, w, h)
 
+
 cv2.namedWindow(focusWindowName)
 cv2.setMouseCallback(focusWindowName, lambda event, x, y, flags, param: focus_click_event(event, x, y, camera, focusWindowResolution))
 
@@ -242,11 +243,17 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
 
+    # drag rect
     if isDragging:
         cv2.rectangle(image, focusStart, focusEnd, (255, 0, 255), 2)
 
+    # focus amount
     cv2.rectangle(image, (0,0), (120, 40), (255, 0, 255), -1)
     cv2.putText(image, str(int(laplacian_var)), (5,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
+    # crosshair
+    common.draw_aim_grid(image, focusWindowResolution)
+    
     cv2.imshow(focusWindowName, image)
 
     key = cv2.waitKey(1) & 0xFF
@@ -287,6 +294,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     
     image = frame.array
     common.draw_mask(image, mask, maskWindowResolution)
+    common.draw_aim_grid(image, maskWindowResolution)
     rawCapture.truncate(0)
 
     cv2.imshow(maskWindowName, image)
