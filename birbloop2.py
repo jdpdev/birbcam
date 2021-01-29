@@ -197,11 +197,11 @@ if debugMode:
 # **************************************
 focusWindowName = "Focus Assist"
 focusWindowResolution = (1024, 768)
-focusStart = (312, 284)
-focusEnd = (712, 484)
+focusStart = (0, 0)
+focusEnd = focusWindowResolution
 isDragging = False
 
-def focus_click_event(event, x, y, flags, param):
+def focus_click_event(event, x, y, camera, resolution):
     global focusStart
     global focusEnd
     global isDragging
@@ -214,6 +214,7 @@ def focus_click_event(event, x, y, flags, param):
 
     if event == cv2.EVENT_LBUTTONUP:
         isDragging = False
+        set_zoom_rect(camera, focusStart, focusEnd, focusWindowResolution)
         return
 
     if event == cv2.EVENT_MOUSEMOVE:
@@ -221,8 +222,15 @@ def focus_click_event(event, x, y, flags, param):
             focusEnd = (x, y)
         return
 
+def set_zoom_rect(camera, tl, br, resolution):
+    x = tl[0] / focusWindowResolution[0]
+    y = tl[1] / focusWindowResolution[1]
+    w = (br[0] - tl[0]) / focusWindowResolution[0]
+    h = (br[1] - tl[1]) / focusWindowResolution[1]
+    camera.zoom = (x, y, w, h)
+
 cv2.namedWindow(focusWindowName)
-cv2.setMouseCallback(focusWindowName, focus_click_event)
+cv2.setMouseCallback(focusWindowName, lambda event, x, y, flags, param: focus_click_event(event, x, y, camera, focusWindowResolution))
 
 camera.resolution = focusWindowResolution
 rawCapture = PiRGBArray(camera, size=focusWindowResolution)
@@ -234,12 +242,17 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
 
-    cv2.rectangle(image, (focusStart[0], focusStart[1] - 40), (focusStart[0] + 120, focusStart[1]), (255, 0, 255), -1)
-    cv2.rectangle(image, focusStart, focusEnd, (255, 0, 255), 2)
-    cv2.putText(image, str(int(laplacian_var)), (focusStart[0] + 5, focusStart[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    if isDragging:
+        cv2.rectangle(image, focusStart, focusEnd, (255, 0, 255), 2)
+
+    cv2.rectangle(image, (0,0), (120, 40), (255, 0, 255), -1)
+    cv2.putText(image, str(int(laplacian_var)), (5,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
     cv2.imshow(focusWindowName, image)
 
     key = cv2.waitKey(1) & 0xFF
+
+    if key == ord("r"):
+        set_zoom_rect(camera, (0,0), focusWindowResolution, focusWindowResolution)
 
     if key == ord("q"):
         break
