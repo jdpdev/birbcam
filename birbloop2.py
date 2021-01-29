@@ -11,6 +11,7 @@ import sys
 import logging
 import sched
 from datetime import datetime
+from setproctitle import setproctitle
 
 LIVE_CAMERA_STEP = 10
 FULL_PICTURE_STEP = 10
@@ -28,6 +29,8 @@ takeFullPicture = False
 takeLivePicture = False
 nextLivePictureTime = 0
 nextFullPictureTime = 0
+
+setproctitle("birbcam -- birbloop2")
 
 def setup_logging():
     ap = argparse.ArgumentParser()
@@ -196,7 +199,7 @@ if debugMode:
 #   Focus assist
 # **************************************
 focusWindowName = "Focus Assist"
-focusWindowResolution = (800, 600)
+focusWindowResolution = (1024, 768)
 focusStart = (0, 0)
 focusEnd = focusWindowResolution
 isDragging = False
@@ -275,6 +278,7 @@ cv2.destroyAllWindows()
 maskWindowName = "Set Detection Mask"
 maskWindowResolution = (800, 600)
 mask = (0.5, 0.5)
+camera.zoom = (0, 0, 1, 1)
 
 def mask_click_event(event, x, y, flags, param):
     if event != cv2.EVENT_LBUTTONDOWN:
