@@ -199,7 +199,7 @@ if debugMode:
 #   Focus assist
 # **************************************
 focusWindowName = "Focus Assist"
-focusWindowResolution = (1024, 768)
+focusWindowResolution = (800, 600)
 focusStart = (0, 0)
 focusEnd = focusWindowResolution
 isDragging = False
@@ -278,6 +278,7 @@ cv2.destroyAllWindows()
 maskWindowName = "Set Detection Mask"
 maskWindowResolution = (800, 600)
 mask = (0.5, 0.5)
+pauseRecording = False
 camera.zoom = (0, 0, 1, 1)
 
 def mask_click_event(event, x, y, flags, param):
@@ -316,52 +317,52 @@ cv2.destroyAllWindows()
 # **************************************
 #   Capture loop
 # **************************************
-currentShutterSpeed = 0
 shutterSpeeds = [333333, 16666, 11111, 8333, 5555, 4166, 3076, 2000, 1333, 1000]
 shutterSpeedNames = ["30", "60", "90", "120", "180", "240", "325", "500", "750", "1000"]
-
 isoSpeeds = [100, 200, 400, 600, 800]
 exposureComps = [-12, -6, 0, 6, 12]
+whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
+
+currentShutterSpeed = 2
+camera.shutter_speed = shutterSpeeds[currentShutterSpeed]
+camera.iso = isoSpeeds[1]
+camera.awb_mode = whiteBalanceModes[0]
+
+def flip_through_array(values, current, delta):
+    try:
+        i = values.index(current)
+        i += delta
+
+        if i >= len(values):
+            i = 0
+
+        if i < 0:
+            i = len(values) - 1
+    except ValueError:
+        i = 0
+
+    return values[i]
 
 def next_shutter_speed(camera, delta):
-    global currentShutterSpeed
     global shutterSpeeds
+    global currentShutterSpeed
+    
+    shutter = flip_through_array(shutterSpeeds, shutterSpeeds[currentShutterSpeed], delta)
+    camera.shutter_speed = shutter
 
-    currentShutterSpeed += delta
-
-    if currentShutterSpeed >= len(shutterSpeeds):
-        currentShutterSpeed = 0
-
-    if currentShutterSpeed < 0:
-        currentShutterSpeed = len(shutterSpeeds) - 1
-
-    camera.shutter_speed = shutterSpeeds[currentShutterSpeed]
+    currentShutterSpeed = shutterSpeeds.index(shutter)
 
 def next_iso(camera, delta):
     global isoSpeeds
-    i = isoSpeeds.index(camera.iso)
-    i += delta
-
-    if i >= len(isoSpeeds):
-        i = 0
-
-    if i < 0:
-        i = len(isoSpeeds) - 1
-
-    camera.iso = isoSpeeds[i]
+    camera.iso = flip_through_array(isoSpeeds, camera.iso, delta)
 
 def next_exposure_comp(camera, delta):
     global exposureComps
-    i = exposureComps.index(camera.exposure_compensation)
-    i += delta
+    camera.exposure_compensation = flip_through_array(exposureComps, camera.exposure_compensation, delta)
 
-    if i >= len(exposureComps):
-        i = 0
-
-    if i < 0:
-        i = len(exposureComps) - 1
-
-    camera.exposure_compensation = exposureComps[i]
+def next_white_balance(camera, delta):
+    global whiteBalanceModes
+    camera.awb_mode = flip_through_array(whiteBalanceModes, camera.awb_mode, delta)
 
 camera.resolution = previewResolution
 rawCapture = PiRGBArray(camera, size=previewResolution)
@@ -405,7 +406,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     # capture full
     didTakeFullPicture = False
-    if shouldTrigger and is_full_picture_time():
+    if shouldTrigger and is_full_picture_time() and not pauseRecording:
         didTakeFullPicture = take_full_picture(camera)
 
         if didTakeFullPicture and debugMode:
@@ -425,6 +426,10 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         cv2.putText(histogram, "(S)hutter (A): " + str(shutterSpeedNames[currentShutterSpeed]), (10, 120), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         cv2.putText(histogram, "(E)xposure (W): " + str(camera.exposure_compensation), (10, 150), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         cv2.putText(histogram, "(I)SO (U): " + str(camera.iso), (10, 180), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "W(B) (V): " + str(camera.awb_mode), (10, 210), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        
+        if pauseRecording:
+            cv2.putText(histogram, "PAUSED", (90, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
         rtop = cv2.hconcat([now, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
@@ -455,6 +460,15 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     if key == ord("w"):
         next_exposure_comp(camera, -1)
+
+    if key == ord("b"):
+        next_white_balance(camera, 1)
+
+    if key == ord("v"):
+        next_white_balance(camera, -1)
+
+    if key == ord("p"):
+        pauseRecording = not pauseRecording
 
     if key == ord("q"):
         break
