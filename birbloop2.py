@@ -83,14 +83,16 @@ def is_full_picture_time():
     global nextFullPictureTime
     return time() >= nextFullPictureTime
 
-def take_full_picture(camera):
+def take_full_picture(camera, thumbnail):
     global noCaptureMode
     if noCaptureMode:
         return False
 
     date = datetime.now()
-    filename = current_filestamp() + ".jpg"
-    path = save_location() + filename
+    filestamp = current_filestamp()
+    filename = filestamp + ".jpg"
+    path = save_location() + "full/" + filename
+    cv2.imwrite(save_location() + "thumb/" + filename, thumbnail)
 
     global takeFullPicture
     takeFullPicture = False
@@ -407,7 +409,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     # capture full
     didTakeFullPicture = False
     if shouldTrigger and is_full_picture_time() and not pauseRecording:
-        didTakeFullPicture = take_full_picture(camera)
+        didTakeFullPicture = take_full_picture(camera, now)
 
         if didTakeFullPicture and debugMode:
             debug_frame(gray, convertAvg)
