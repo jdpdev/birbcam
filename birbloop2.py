@@ -402,8 +402,6 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         if cv2.contourArea(c) < 600:
             continue
         
-        (x, y, w, h) = cv2.boundingRect(c)
-        cv2.rectangle(now, (x, y), (x + w, y + h), (0, 255, 0), 2)
         shouldTrigger = True
 
     # capture full
@@ -419,6 +417,13 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     # visualize
     if debugMode:
+        for c in cnts:
+            if cv2.contourArea(c) < 600:
+                continue
+            
+            (x, y, w, h) = cv2.boundingRect(c)
+            cv2.rectangle(now, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
         convertAvg = cv2.cvtColor(convertAvg, cv2.COLOR_GRAY2BGR)
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
