@@ -1,8 +1,9 @@
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+from picamerax.array import PiRGBArray
+from picamerax import PiCamera
 #from common import draw_mask
 from time import time, sleep
 import common
+import lensshading
 import cv2
 import numpy as np
 import imutils
@@ -33,15 +34,15 @@ nextFullPictureTime = 0
 
 setproctitle("birbcam")
 
-def setup_logging():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-f", "--file", default=None, help="path to the log file")
-    ap.add_argument("-d", "--debug", help="debug mode", action='store_true')
-    ap.add_argument("-n", "--no-capture", help="do not capture photos", action='store_true')
-    ap.add_argument("-s", "--save", help="picture save location", default='/home/pi/Public/birbs/')
-    #parsed = ap.parse_args()
-    args = vars(ap.parse_args())
+ap = argparse.ArgumentParser()
+ap.add_argument("-f", "--file", default=None, help="path to the log file")
+ap.add_argument("-d", "--debug", help="debug mode", action='store_true')
+ap.add_argument("-n", "--no-capture", help="do not capture photos", action='store_true')
+ap.add_argument("-s", "--save", help="picture save location", default='/home/pi/Public/birbs/')
+ap.add_argument("-ls", "--lensshading", help="which lens shading compensation to use", nargs="?", const=None, default=None)
+args = vars(ap.parse_args())
 
+def setup_logging(args):
     if not args.get('file') is None:
         logging.basicConfig(level=logging.INFO, filename=args.get('file'), format='%(levelname)s: %(message)s')
     else:
@@ -189,13 +190,16 @@ def debug_frame(frame, key):
 
     logging.info("Histogram comparison: %d" % compare)
 
-setup_logging()
+setup_logging(args)
+shading = lensshading.get_lens_shading(args.get("lensshading")).astype("uint8")
+print(np.shape(shading))
 
 camera = PiCamera()
 camera.resolution = previewResolution
 camera.framerate = 30;
 camera.iso = 200
-rawCapture = PiRGBArray(camera, size=previewResolution)
+camera.lens_shading_table = shading
+rawCapture = PiRGBArray(camera, size=previewResolution) 
 
 camera.exposure_mode = 'auto'
 camera.awb_mode = 'auto'
@@ -388,6 +392,7 @@ def next_white_balance(camera, delta):
 
 camera.resolution = previewResolution
 rawCapture = PiRGBArray(camera, size=previewResolution)
+camera.lens_shading_table = shading
 mask_resolution = common.get_mask_real_size(mask, previewResolution)
 mask_bounds = common.get_mask_coords(mask, previewResolution)
 
