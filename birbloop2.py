@@ -21,6 +21,7 @@ previewResolution = (640, 480)
 FULL_RES = (4056, 3040)
 mask = (0.5, 0.5)
 windowName = 'birbcam'
+saveLocation = '/home/pi/Public/birbs/'
 debugMode = False
 noCaptureMode = False
 average = None
@@ -30,13 +31,14 @@ takeLivePicture = False
 nextLivePictureTime = 0
 nextFullPictureTime = 0
 
-setproctitle("birbcam -- birbloop2")
+setproctitle("birbcam")
 
 def setup_logging():
     ap = argparse.ArgumentParser()
     ap.add_argument("-f", "--file", default=None, help="path to the log file")
     ap.add_argument("-d", "--debug", help="debug mode", action='store_true')
     ap.add_argument("-n", "--no-capture", help="do not capture photos", action='store_true')
+    ap.add_argument("-s", "--save", help="picture save location", default='/home/pi/Public/birbs/')
     #parsed = ap.parse_args()
     args = vars(ap.parse_args())
 
@@ -44,6 +46,10 @@ def setup_logging():
         logging.basicConfig(level=logging.INFO, filename=args.get('file'), format='%(levelname)s: %(message)s')
     else:
         logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
+    global saveLocation
+    saveLocation = args.get('save')
+    logging.info("Saving to: " + saveLocation)
 
     global debugMode
     global noCaptureMode
@@ -63,10 +69,11 @@ def process_image(image):
 
 def current_filestamp():
     date = datetime.now()
-    return date.strftime("%Y-%m-%d-%H:%M:%S")
+    return date.strftime("%Y-%m-%d-%H-%M-%S")
 
 def save_location():
-    return "/home/pi/Public/birbs/"
+    global saveLocation
+    return saveLocation
 
 def toggle_full_picture(sc):
     logging.info('Ready for full picture')
@@ -139,26 +146,39 @@ def take_live_picture(camera):
 
     schedule_live_picture()
 
-def draw_histogram(key, now, resolution):
+def draw_histogram(now, key, resolution):
     halfHeight = int(resolution[1] / 2)
     blank = np.zeros((resolution[1],resolution[0],3), np.uint8)
 
-    key_hist = cv2.calcHist([key], [0], None, [256], [0,256])
+    #key_hist = cv2.calcHist([key], [0], None, [256], [0,256])
     #cv2.normalize(key_hist, key_hist, 0, halfHeight, cv2.NORM_MINMAX)
     #key_data = np.int32(np.around(key_hist))
 
     #for x, y in enumerate(key_data):
     #    cv2.line(blank, (x * 2,halfHeight),(x * 2,halfHeight-y),(255,255,255))
 
-    now_hist = cv2.calcHist([now], [0], None, [256], [0,256])
-    #cv2.normalize(now_hist, now_hist, 0, halfHeight, cv2.NORM_MINMAX)
-    #now_data = np.int32(np.around(now_hist))
+    now_hist = cv2.calcHist([now], [0], None, [256], [0,255])
+    cv2.normalize(now_hist, now_hist, 0, halfHeight, cv2.NORM_MINMAX)
+    now_data = np.int32(np.around(now_hist))
+    #average = int(np.average(now_data))
+    max = now_data.max()
+    average = 0
+    total = 0
 
-    #for x, y in enumerate(now_data):
-    #    cv2.line(blank, (x * 2,resolution[1]),(x * 2,resolution[1]-y),(255,255,255))
+    for x, y in enumerate(now_data):
+        average += y * x
+        total += y
+        #average += (y / max) * x
 
-    compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
-    cv2.putText(blank,"%d" % compare,(30, 30),cv2.FONT_HERSHEY_SIMPLEX,1,(255, 255, 255),2)
+    average = int(average / total)
+
+    for x, y in enumerate(now_data):
+        color = (0, 255, 0) if x == average else (255, 255, 255)
+        height = resolution[1] - 255 if x == average else resolution[1] - y;
+        cv2.line(blank, (x, resolution[1]),(x, height), color)
+
+    #compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
+    cv2.putText(blank,"%d" % average,(average + 5, resolution[1] - 128),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 0))
 
     return blank
 
@@ -280,7 +300,7 @@ cv2.destroyAllWindows()
 maskWindowName = "Set Detection Mask"
 maskWindowResolution = (800, 600)
 mask = (0.5, 0.5)
-pauseRecording = False
+pauseRecording = True
 camera.zoom = (0, 0, 1, 1)
 
 def mask_click_event(event, x, y, flags, param):
@@ -319,8 +339,8 @@ cv2.destroyAllWindows()
 # **************************************
 #   Capture loop
 # **************************************
-shutterSpeeds = [333333, 16666, 11111, 8333, 5555, 4166, 3076, 2000, 1333, 1000]
-shutterSpeedNames = ["30", "60", "90", "120", "180", "240", "325", "500", "750", "1000"]
+shutterSpeeds = [333333, 25000, 16666, 11111, 8000, 5555, 4166, 4000, 2857, 1333, 1000]
+shutterSpeedNames = ["30", "45", "60", "90", "125", "180", "250", "350", "500", "750", "1000"]
 isoSpeeds = [100, 200, 400, 600, 800]
 exposureComps = [-12, -6, 0, 6, 12]
 whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
@@ -377,7 +397,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     now = imutils.resize(now, 640, 480)
     rawCapture.truncate(0)
 
-    now = common.extract_image_region(now, mask_bounds)
+    masked = common.extract_image_region(now, mask_bounds)
     gray = common.extract_image_region(gray, mask_bounds)
 
     # initialize average
@@ -386,7 +406,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         continue
     
     # calculate delta
-    cv2.accumulateWeighted(gray, average, 0.05)
+    cv2.accumulateWeighted(gray, average, 0.1)
     convertAvg = cv2.convertScaleAbs(average)
     frameDelta = cv2.absdiff(gray, convertAvg)
     thresh = cv2.threshold(frameDelta, 90, 255, cv2.THRESH_BINARY)[1]
@@ -407,7 +427,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     # capture full
     didTakeFullPicture = False
     if shouldTrigger and is_full_picture_time() and not pauseRecording:
-        didTakeFullPicture = take_full_picture(camera, now)
+        didTakeFullPicture = take_full_picture(camera, masked)
 
         if didTakeFullPicture and debugMode:
             debug_frame(gray, convertAvg)
@@ -422,23 +442,23 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
                 continue
             
             (x, y, w, h) = cv2.boundingRect(c)
-            cv2.rectangle(now, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.rectangle(masked, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         convertAvg = cv2.cvtColor(convertAvg, cv2.COLOR_GRAY2BGR)
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        histogram = draw_histogram(gray, convertAvg, mask_resolution)
+        histogram = draw_histogram(cv2.cvtColor(now, cv2.COLOR_BGR2GRAY), convertAvg, mask_resolution)
 
-        cv2.putText(histogram, "(S)hutter (A): " + str(shutterSpeedNames[currentShutterSpeed]), (10, 120), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, "(E)xposure (W): " + str(camera.exposure_compensation), (10, 150), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, "(I)SO (U): " + str(camera.iso), (10, 180), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, "W(B) (V): " + str(camera.awb_mode), (10, 210), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "(S)hutter (A): " + str(shutterSpeedNames[currentShutterSpeed]), (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "(E)xposure (W): " + str(camera.exposure_compensation), (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "(I)SO (U): " + str(camera.iso), (10, 80), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, "W(B) (V): " + str(camera.awb_mode), (10, 110), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         
         if pauseRecording:
-            cv2.putText(histogram, "PAUSED", (90, 80), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+            cv2.putText(histogram, "PAUSED", (90, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
-        rtop = cv2.hconcat([now, histogram])
+        rtop = cv2.hconcat([masked, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
         quad = cv2.vconcat([rtop, rbottom])
         #quad = cv2.resize(quad, (800, 600))
