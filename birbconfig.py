@@ -2,5 +2,9 @@ import configparser
 
 class BirbConfig:
     def __init__(self):
-        config = configparser.ConfigParser()
-        config.read('config.ini')
+        self.config = configparser.ConfigParser()
+        self.config.read('config.ini')
+
+    @property
+    def saveTo(self):
+        return self.config["SaveDirectory"]
