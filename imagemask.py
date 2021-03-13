@@ -8,8 +8,12 @@ class ImageMask:
     maskWindowResolution = (800, 600)
 
     def __init__(self):
-        self.mask = (0.5, 0.5)
-        self.pauseRecording = True
+        self._mask = (0.5, 0.5)
+
+    @property
+    def mask(self):
+        """The region to mask"""
+        return self._mask
 
     def run(self, camera):
         camera.zoom = (0, 0, 1, 1)
@@ -28,7 +32,7 @@ class ImageMask:
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     
             image = frame.array
-            common.draw_mask(image, self.mask, self.maskWindowResolution)
+            common.draw_mask(image, self._mask, self.maskWindowResolution)
             common.draw_aim_grid(image, self.maskWindowResolution)
             rawCapture.truncate(0)
 
@@ -46,4 +50,4 @@ class ImageMask:
         if event != cv2.EVENT_LBUTTONDOWN:
             return
 
-        self.mask = common.change_mask_size(x, y, self.maskWindowResolution)
+        self._mask = common.change_mask_size(x, y, self.maskWindowResolution)

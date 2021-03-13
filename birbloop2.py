@@ -230,6 +230,7 @@ if focusAssist.run(camera) == False: sys.exit()
 # **************************************
 imageMask = ImageMask()
 if imageMask.run(camera) == False: sys.exit()
+mask = imageMask.mask
 
 # **************************************
 #   Capture loop
