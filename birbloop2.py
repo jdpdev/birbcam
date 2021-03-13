@@ -1,6 +1,5 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
-#from common import draw_mask
 from time import time, sleep
 import common
 import lensshading
@@ -13,6 +12,9 @@ import logging
 import sched
 from datetime import datetime
 from setproctitle import setproctitle
+
+from birbconfig import BirbConfig
+from focusassist import FocusAssist
 
 LIVE_CAMERA_STEP = 10
 FULL_PICTURE_STEP = 10
@@ -151,17 +153,10 @@ def draw_histogram(now, key, resolution):
     halfHeight = int(resolution[1] / 2)
     blank = np.zeros((resolution[1],resolution[0],3), np.uint8)
 
-    #key_hist = cv2.calcHist([key], [0], None, [256], [0,256])
-    #cv2.normalize(key_hist, key_hist, 0, halfHeight, cv2.NORM_MINMAX)
-    #key_data = np.int32(np.around(key_hist))
-
-    #for x, y in enumerate(key_data):
-    #    cv2.line(blank, (x * 2,halfHeight),(x * 2,halfHeight-y),(255,255,255))
-
     now_hist = cv2.calcHist([now], [0], None, [256], [0,255])
     cv2.normalize(now_hist, now_hist, 0, halfHeight, cv2.NORM_MINMAX)
     now_data = np.int32(np.around(now_hist))
-    #average = int(np.average(now_data))
+    
     max = now_data.max()
     average = 0
     total = 0
@@ -169,7 +164,6 @@ def draw_histogram(now, key, resolution):
     for x, y in enumerate(now_data):
         average += y * x
         total += y
-        #average += (y / max) * x
 
     average = int(average / total)
 
@@ -191,15 +185,18 @@ def debug_frame(frame, key):
     logging.info("Histogram comparison: %d" % compare)
 
 setup_logging(args)
-shading = lensshading.get_lens_shading(args.get("lensshading")).astype("uint8")
-print(np.shape(shading))
 
 camera = PiCamera()
 camera.resolution = previewResolution
 camera.framerate = 30;
 camera.iso = 200
-camera.lens_shading_table = shading
 rawCapture = PiRGBArray(camera, size=previewResolution) 
+
+shading = lensshading.get_lens_shading(args.get("lensshading"))
+if shading != None:
+    shading = shading.astype("uint8")
+    print(np.shape(shading))
+    camera.lens_shading_table = shading
 
 camera.exposure_mode = 'auto'
 camera.awb_mode = 'auto'
@@ -224,79 +221,8 @@ if debugMode:
 # **************************************
 #   Focus assist
 # **************************************
-focusWindowName = "Focus Assist"
-focusWindowResolution = (800, 600)
-focusStart = (0, 0)
-focusEnd = focusWindowResolution
-isDragging = False
-
-def focus_click_event(event, x, y, camera, resolution):
-    global focusStart
-    global focusEnd
-    global isDragging
-    
-    if event == cv2.EVENT_LBUTTONDOWN:
-        focusStart = (x, y)
-        focusEnd = (x, y)
-        isDragging = True
-        return
-
-    if event == cv2.EVENT_LBUTTONUP:
-        isDragging = False
-        set_zoom_rect(camera, focusStart, focusEnd, focusWindowResolution)
-        return
-
-    if event == cv2.EVENT_MOUSEMOVE:
-        if isDragging:
-            focusEnd = (x, y)
-        return
-
-def set_zoom_rect(camera, tl, br, resolution):
-    x = tl[0] / focusWindowResolution[0]
-    y = tl[1] / focusWindowResolution[1]
-    w = (br[0] - tl[0]) / focusWindowResolution[0]
-    h = (br[1] - tl[1]) / focusWindowResolution[1]
-    camera.zoom = (x, y, w, h)
-
-
-cv2.namedWindow(focusWindowName)
-cv2.setMouseCallback(focusWindowName, lambda event, x, y, flags, param: focus_click_event(event, x, y, camera, focusWindowResolution))
-
-camera.resolution = focusWindowResolution
-rawCapture = PiRGBArray(camera, size=focusWindowResolution)
-
-for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-
-    image = frame.array
-    rawCapture.truncate(0)
-
-    laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
-
-    # drag rect
-    if isDragging:
-        cv2.rectangle(image, focusStart, focusEnd, (255, 0, 255), 2)
-
-    # focus amount
-    cv2.rectangle(image, (0,0), (120, 40), (255, 0, 255), -1)
-    cv2.putText(image, str(int(laplacian_var)), (5,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
-
-    # crosshair
-    common.draw_aim_grid(image, focusWindowResolution)
-    
-    cv2.imshow(focusWindowName, image)
-
-    key = cv2.waitKey(1) & 0xFF
-
-    if key == ord("r"):
-        set_zoom_rect(camera, (0,0), focusWindowResolution, focusWindowResolution)
-
-    if key == ord("q"):
-        break
-
-    if key == ord("x"):
-        sys.exit()
-
-cv2.destroyAllWindows()
+focusAssist = FocusAssist()
+if focusAssist.run(camera) == False: sys.exit()
 
 # **************************************
 #   Set mask
