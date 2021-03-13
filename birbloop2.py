@@ -15,6 +15,7 @@ from setproctitle import setproctitle
 
 from birbconfig import BirbConfig
 from focusassist import FocusAssist
+from imagemask import ImageMask
 
 LIVE_CAMERA_STEP = 10
 FULL_PICTURE_STEP = 10
@@ -227,44 +228,8 @@ if focusAssist.run(camera) == False: sys.exit()
 # **************************************
 #   Set mask
 # **************************************
-maskWindowName = "Set Detection Mask"
-maskWindowResolution = (800, 600)
-mask = (0.5, 0.5)
-pauseRecording = True
-camera.zoom = (0, 0, 1, 1)
-
-def mask_click_event(event, x, y, flags, param):
-    if event != cv2.EVENT_LBUTTONDOWN:
-        return
-
-    global mask
-    global maskWindowResolution
-    mask = common.change_mask_size(x, y, maskWindowResolution)
-
-cv2.namedWindow(maskWindowName)
-cv2.setMouseCallback(maskWindowName, mask_click_event)
-
-camera.resolution = maskWindowResolution
-rawCapture = PiRGBArray(camera, size=maskWindowResolution)
-
-for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-    
-    image = frame.array
-    common.draw_mask(image, mask, maskWindowResolution)
-    common.draw_aim_grid(image, maskWindowResolution)
-    rawCapture.truncate(0)
-
-    cv2.imshow(maskWindowName, image)
-
-    key = cv2.waitKey(1) & 0xFF
-
-    if key == ord("q"):
-        break
-
-    if key == ord("x"):
-        sys.exit()
-
-cv2.destroyAllWindows()
+imageMask = ImageMask()
+if imageMask.run(camera) == False: sys.exit()
 
 # **************************************
 #   Capture loop
@@ -274,6 +239,7 @@ shutterSpeedNames = ["30", "45", "60", "90", "125", "180", "250", "350", "500", 
 isoSpeeds = [100, 200, 400, 600, 800]
 exposureComps = [-12, -6, 0, 6, 12]
 whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
+pauseRecording = True
 
 currentShutterSpeed = 2
 camera.shutter_speed = shutterSpeeds[currentShutterSpeed]
