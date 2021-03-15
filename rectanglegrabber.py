@@ -1,9 +1,10 @@
 import cv2
 
 class RectangleGrabber:
-    def __init__(self, windowName, resolution, onEnd, preserveAspectRatio = False):
+    def __init__(self, windowName, resolution, onDrag = None, onEnd = None, preserveAspectRatio = False):
         self.start = (0,0)
         self._isDragging = False
+        self.onDrag = onDrag
         self.onEnd = onEnd
         self.preserveAspectRatio = preserveAspectRatio
 
@@ -39,6 +40,9 @@ class RectangleGrabber:
         if event == cv2.EVENT_MOUSEMOVE:
             if self.isDragging:
                 self.end = self.__calculate_br(x, y)
+
+                if self.onDrag != None:
+                    self.onDrag(self.start, self.end)
             return
 
     def __calculate_br(self, brx, bry):
@@ -49,6 +53,7 @@ class RectangleGrabber:
         return (brx, self.start[1] + h)
 
     def __report_end(self):
-        self.onEnd(self.start, self.end)
+        if self.onEnd != None:
+            self.onEnd(self.start, self.end)
 
     

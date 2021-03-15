@@ -21,8 +21,8 @@ class FocusAssist:
         self.zoomRect = RectangleGrabber(
             self.focusWindowName,
             self.focusWindowResolution,
-            lambda tl, br: self.__set_zoom_rect(camera, tl, br),
-            True
+            onEnd=lambda tl, br: self.__set_zoom_rect(camera, tl, br),
+            preserveAspectRatio=True
         )
 
         camera.resolution = self.focusWindowResolution

@@ -3,18 +3,22 @@ import imutils
 import numpy as np
 
 def draw_mask(image, mask, resolution):
-    halfRes = (int(resolution[0] / 2), int(resolution[1] / 2))
-    maskRes = (int((resolution[0] * mask[0]) / 2), int((resolution[1] * mask[1]) / 2))
+    (x, y, w, h) = mask
 
-    left = halfRes[0] - maskRes[0]
-    right = halfRes[0] + maskRes[0]
-    top = halfRes[1] - maskRes[1]
-    bottom = halfRes[1] + maskRes[1]
+    maskOverlay = image.copy()
 
-    cv2.rectangle(image, (0,0), (resolution[0],top), (0,0,0), -1)
-    cv2.rectangle(image, (0,bottom), (resolution[0],resolution[1]), (0,0,0), -1)
-    cv2.rectangle(image, (0,0), (left,resolution[1]), (0,0,0), -1)
-    cv2.rectangle(image, (right,0), (resolution[0],resolution[1]), (0,0,0), -1)
+    left = int(resolution[0] * x)
+    right = left + int(resolution[0] * w)
+    top = int(resolution[1] * y)
+    bottom = top + int(resolution[1] * h)
+
+    cv2.rectangle(maskOverlay, (0,0), (resolution[0],top), (0,0,0), -1)
+    cv2.rectangle(maskOverlay, (0,bottom), (resolution[0],resolution[1]), (0,0,0), -1)
+    cv2.rectangle(maskOverlay, (0,0), (left,resolution[1]), (0,0,0), -1)
+    cv2.rectangle(maskOverlay, (right,0), (resolution[0],resolution[1]), (0,0,0), -1)
+
+    cv2.addWeighted(maskOverlay, 0.7, image, 0.3, 0, image)
+    cv2.rectangle(image, (left, top), (right, bottom), (0, 255, 255), 1)
 
 def reduce_img(img, resize=None):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -58,15 +62,20 @@ def change_mask_size(x, y, resolution):
     return (mx, my)
 
 def get_mask_real_size(mask, resolution):
-    return (int(resolution[0] * mask[0]), int(resolution[1] * mask[1]))
+    (x, y, w, h) = mask
+    return (int(resolution[0] * w), int(resolution[1] * h))
 
 def get_mask_coords(mask, resolution):
-    size = get_mask_real_size(mask, resolution)
-    halfSize = {"x": size[0] / 2, "y": size[1] / 2}
-    halfRes = {"x": resolution[0] / 2, "y": resolution[1] / 2}
+    (x, y, w, h) = mask
     return {
-        "tl": {"x": int(halfRes["x"] - halfSize["x"]), "y": int(halfRes["y"] - halfSize["y"])},
-        "br": {"x": int(halfRes["x"] + halfSize["x"]), "y": int(halfRes["y"] + halfSize["y"])}
+        "tl": {
+            "x": int(x * resolution[0]), 
+            "y": int(y * resolution[1])
+        },
+        "br": {
+            "x": int(x * resolution[0]) + int(w * resolution[0]), 
+            "y": int(y * resolution[1]) + int(h * resolution[1])
+        }
     }
 
 def extract_image_region(image, bounds):

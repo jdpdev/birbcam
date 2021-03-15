@@ -3,12 +3,14 @@ from picamerax import PiCamera
 import common
 import cv2
 
+from rectanglegrabber import RectangleGrabber
+
 class ImageMask:
     maskWindowName = "Set Detection Region"
     maskWindowResolution = (800, 600)
 
     def __init__(self):
-        self._mask = (0.5, 0.5)
+        self._mask = (0.25, 0.25, 0.5, 0.5)
 
     @property
     def mask(self):
@@ -16,12 +18,17 @@ class ImageMask:
         return self._mask
 
     def run(self, camera):
+        cv2.namedWindow(self.maskWindowName)
+        self.maskRect = RectangleGrabber(
+            self.maskWindowName, 
+            self.maskWindowResolution,
+            onDrag = lambda tl, br: self.__set_mask_rect(tl, br),
+            onEnd = lambda tl, br: self.__set_mask_rect(tl, br) 
+        )
+
         camera.zoom = (0, 0, 1, 1)
         camera.resolution = self.maskWindowResolution
         rawCapture = PiRGBArray(camera, size=self.maskWindowResolution)
-
-        cv2.namedWindow(self.maskWindowName)
-        cv2.setMouseCallback(self.maskWindowName, self.__mask_click_event)
 
         keepGoing = self.__loop(camera, rawCapture)
         cv2.destroyAllWindows()
@@ -46,8 +53,13 @@ class ImageMask:
             if key == ord("x"):
                 return False
 
-    def __mask_click_event(self, event, x, y, flags, param):
-        if event != cv2.EVENT_LBUTTONDOWN:
-            return
+    def __set_mask_rect(self, tl, br):
+        rx = self.maskWindowResolution[0]
+        ry = self.maskWindowResolution[1]
 
-        self._mask = common.change_mask_size(x, y, self.maskWindowResolution)
+        x = tl[0] / rx
+        y = tl[1] / ry
+        w = (br[0] - tl[0]) / rx
+        h = (br[1] - tl[1]) / ry
+
+        self._mask = (x, y, w, h)
