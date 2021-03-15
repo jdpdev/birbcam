@@ -22,8 +22,8 @@ class ImageMask:
         self.maskRect = RectangleGrabber(
             self.maskWindowName, 
             self.maskWindowResolution,
-            onDrag = lambda tl, br: self.__set_mask_rect(tl, br),
-            onEnd = lambda tl, br: self.__set_mask_rect(tl, br) 
+            onDrag = lambda bounds: self.__set_mask_rect(bounds),
+            onEnd = lambda bounds: self.__set_mask_rect(bounds) 
         )
 
         camera.resolution = self.maskWindowResolution
@@ -52,7 +52,8 @@ class ImageMask:
             if key == ord("x"):
                 return False
 
-    def __set_mask_rect(self, tl, br):
+    def __set_mask_rect(self, bounds):
+        (tl, br) = bounds
         rx = self.maskWindowResolution[0]
         ry = self.maskWindowResolution[1]
 

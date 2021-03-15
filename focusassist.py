@@ -21,7 +21,7 @@ class FocusAssist:
         self.zoomRect = RectangleGrabber(
             self.focusWindowName,
             self.focusWindowResolution,
-            onEnd=lambda tl, br: self.__set_zoom_rect(camera, tl, br),
+            onEnd=lambda bounds: self.__set_zoom_rect(camera, bounds),
             preserveAspectRatio=True
         )
 
@@ -70,7 +70,8 @@ class FocusAssist:
                 cv2.destroyWindow(self.focusWindowName)
                 return False
 
-    def __set_zoom_rect(self, camera, tl, br):
+    def __set_zoom_rect(self, camera, bounds):
+        (tl, br) = bounds
         rx = self.focusWindowResolution[0]
         ry = self.focusWindowResolution[1]
 
