@@ -26,7 +26,6 @@ class ImageMask:
             onEnd = lambda tl, br: self.__set_mask_rect(tl, br) 
         )
 
-        camera.zoom = (0, 0, 1, 1)
         camera.resolution = self.maskWindowResolution
         rawCapture = PiRGBArray(camera, size=self.maskWindowResolution)
 

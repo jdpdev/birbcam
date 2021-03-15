@@ -93,7 +93,7 @@ class BirbWatcher:
     def __take_preview(self, rawCapture, mask_bounds):
         now = rawCapture.array
         gray = self.__blur_and_grayscale(now)
-        now = imutils.resize(now, 640, 480)
+        #now = imutils.resize(now, 640, 480)
         rawCapture.truncate(0)
 
         masked = common.extract_image_region(now, mask_bounds)

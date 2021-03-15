@@ -29,7 +29,9 @@ class FocusAssist:
         rawCapture = PiRGBArray(camera, size=self.focusWindowResolution)
 
         keepGoing = self.__camera_loop(camera, rawCapture)
+        
         cv2.destroyAllWindows()
+        camera.zoom = (0, 0, 1, 1)
 
         return keepGoing
 
