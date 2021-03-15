@@ -37,8 +37,8 @@ class BirbConfig:
     # ********************
     @property
     def debugMode(self):
-        arg = self.args.get("debug")
-        if arg != None: return arg
+        #arg = self.args.get("debug")
+        #if arg != None: return arg
 
         return self.config["Debug"].getboolean("Enable", False)
 
