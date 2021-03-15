@@ -1,10 +1,11 @@
 import configparser
+import os
 from argparse import ArgumentParser
 
 class BirbConfig:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read('config.ini')
+        self.config.read(f"{os.path.dirname(os.path.realpath(__file__))}/config.ini")
 
         self.ap = ArgumentParser()
         self.ap.add_argument("-f", "--file", default=None, help="path to the log file")
@@ -27,19 +28,31 @@ class BirbConfig:
     # ********************
     @property
     def saveTo(self):
-        return self.__clean_string(self.config["Saving"]["Directory"].strip("'"))
+        arg = self.args.get("save")
+        if arg != None: return arg
+
+        return self.config["Saving"]["Directory"]
 
     # ********************
     #  [Debug] Debug details
     # ********************
     @property
     def debugMode(self):
+        arg = self.args.get("debug")
+        if arg != None: return arg
+
         return self.config["Debug"].getboolean("Enable", False)
 
     @property
     def logFile(self):
-        return self.__clean_string(self.config["Debug"].get("LogFile", None))
+        loc = self.config["Debug"].get("LogFile", None)
+        if loc is None: return None
+
+        return f"{os.path.dirname(os.path.realpath(__file__))}/{loc}"
 
     @property
     def noCaptureMode(self):
+        arg = self.args.get("no-capture")
+        if arg != None: return arg
+
         return self.config["Debug"].getboolean("NoCapture", False)
