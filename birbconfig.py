@@ -9,8 +9,7 @@ class BirbConfig:
 
         self.ap = ArgumentParser()
         self.ap.add_argument("-f", "--file", default=None, help="path to the log file")
-        self.ap.add_argument("-d", "--debug", help="debug mode", default=None)
-        self.ap.add_argument("-n", "--no-capture", help="do not capture photos", default=None)
+        self.ap.add_argument("-n", "--no-capture", help="do not capture photos", action='store_true')
         self.ap.add_argument("-s", "--save", help="picture save location", default=None)
         self.ap.add_argument("-ls", "--lensshading", help="which lens shading compensation to use", default=None)
 
