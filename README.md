@@ -1,6 +1,8 @@
 # birbcam
 
-A Raspberry Pi-powered, motion-activated camera for watching bird feeders.
+A Raspberry Pi-powered, change-activated camera for watching bird feeders.
+
+Check out (Birbserver)[https://github.com/jdpdev/birbserver], a web interface for your Birbcam designed to run on the same RPI.
 
 ## Set Up
 ### Hardware
