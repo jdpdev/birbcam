@@ -3,9 +3,20 @@
 A Raspberry Pi-powered, motion-activated camera for watching bird feeders.
 
 ## Set Up
-### Environment
+### Hardware
 
-Tested with Python 3.7.3 on a Raspberry Pi 4 Model B (4GB RAM) running Raspbian Buster, using the Camera Module V2 and HQ cameras.
+#### Required
+* Raspberry Pi - All testing has been done on a [Raspberry Pi 4 Model-B](https://www.raspberrypi.org/products/raspberry-pi-4-model-b/) with 4GB of RAM. If you're brand new to Raspberry Pi, there are many options for kits that come with the board, the OS pre-installed on a boot SD card, and a case.
+* Raspberry Pi Camera
+    * [Camera Module V2](https://www.raspberrypi.org/products/camera-module-v2/) - A small 8MP, fixed-focus camera. Lens is wide so will have to be mounted close to the feeder. Focus can be adjusted, but it is not really meant to be refocused. Good for testing, but if you stick with it you will want to upgrade to...
+    * [HQ Camera](https://www.raspberrypi.org/products/raspberry-pi-high-quality-camera/) - 12MP, a much bigger sensor than the V2, and swappable lenses. Standard lenses come with 6mm and 16mm (28mm and 85mm equivalent on a 35mm camera) focal lengths; I find the 16mm to be a very good choice.
+
+#### Good To Have
+* [Adafruit HQ Camera Case](https://learn.adafruit.com/raspberry-pi-hq-camera-case) - Combines the RPI and HQ Camera in a handy package. Has to be 3D printed. The HQ camera has a integrated standard tripod screw mount.
+* External USB Storage - Protects the boot SD card from degredation, and provides the convience of being able to plug into another computer to work on your pictures.
+* Longer Lenses - [Arducam](https://www.arducam.com/product-category/lenses/) sells lenses for the HQ camera with longer focal lengths, but they require color correction that is not yet available in Birbcam.
+
+### Environment
 
 Requires the following Python packages, available on PIP
 ```
@@ -52,6 +63,8 @@ To exit the app, press `X`.
 
 ### Camera Watcher
 If you are running Debug Mode, the final screen is the observing interface, which you can use to monitor the camera. There are four quadrants in the display:
+
+![2021-02-23-12-13-53](https://user-images.githubusercontent.com/6239142/111321415-480f7900-863e-11eb-83c0-5eb3b8734c4e.jpg)
 
 - `Top Left` - The live feed from the camera. Changes that could trigger a picture will be highlighted by a green rectangle.
 - `Top Right` - Camera settings and exposure histogram. Camera settings can be changed with the keys marked `(x)`. The histogram plots the luminance of the image and is used to assist exposure setting.
