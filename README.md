@@ -68,8 +68,8 @@ If you are running Debug Mode, the final screen is the observing interface, whic
 
 - `Top Left` - The live feed from the camera. Changes that could trigger a picture will be highlighted by a green rectangle.
 - `Top Right` - Camera settings and exposure histogram. Camera settings can be changed with the keys marked `(x)`. The histogram plots the luminance of the image and is used to assist exposure setting.
-- `Bottom Left` - The current average image being used to detect changes.
-- `Bottom Right` - The difference between the live and average images, used to determine if changes are significant enough to take a picture.
+- `Bottom Left` - The difference between the live and the reference image.
+- `Bottom Right` - The difference image clamped to a threshold value, highlighting significant changes.
 
 The camera starts paused: it will take live pictures, but will not take full pictures until unpaused.
 
