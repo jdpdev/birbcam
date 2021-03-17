@@ -83,11 +83,7 @@ class BirbWatcher:
             self.livePictureTaker.take_picture(camera, rawCapture)
             
             if not self.pauseRecording and shouldTrigger: 
-                didTakeFullPicture = self.fullPictureTaker.take_picture(camera, rawCapture)
-
-                if didTakeFullPicture:
-                    filename = picturetaker.filename_filestamp()
-                    cv2.imwrite(f"{self.config.saveTo}/thumb/{filename}", now)
+                didTakeFullPicture = self.fullPictureTaker.take_picture(camera, rawCapture, (f"{self.config.saveTo}/thumb/", now))
 
             # visualize
             if self.config.debugMode:
@@ -121,7 +117,7 @@ class BirbWatcher:
         cv2.accumulateWeighted(gray, average, 0.1)
         convertAvg = cv2.convertScaleAbs(average)
         frameDelta = cv2.absdiff(gray, convertAvg)
-        thresh = cv2.threshold(frameDelta, 90, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(frameDelta, 75, 255, cv2.THRESH_BINARY)[1]
         thresh = cv2.dilate(thresh, None, iterations=2)
 
         return (average, frameDelta, thresh, convertAvg)
@@ -134,7 +130,7 @@ class BirbWatcher:
 
     def __should_trigger(self, contours):
         for c in contours:
-            if cv2.contourArea(c) < 600:
+            if cv2.contourArea(c) < 500:
                 continue
             
             return True

@@ -1,5 +1,6 @@
 from time import time
 from datetime import datetime
+import cv2
 
 class PictureTaker:
     def __init__(self, resolution, cooldown, saveTo, fileNamer):
@@ -13,20 +14,28 @@ class PictureTaker:
     def readyForPicture(self):
         return time() >= self.nextPictureTime
 
-    def take_picture(self, camera, rawCapture):
+    def take_picture(self, camera, rawCapture, thumbnail = None):
         if not self.readyForPicture: 
             return False
 
+        filename = self.__get_file_name()
+
         restoreResolution = camera.resolution
         camera.resolution = self.resolution
-        camera.capture(self.__save_path())
+        camera.capture(self.__save_path(filename))
         camera.resolution = restoreResolution
+
+        if thumbnail != None:
+            cv2.imwrite(f"{thumbnail[0]}{filename}", thumbnail[1])
 
         self.__schedule_next_picture()
         return True
 
-    def __save_path(self):
-        return f"{self.saveTo}/{self.fileNamer()}"
+    def __get_file_name(self):
+        return self.fileNamer()
+
+    def __save_path(self, file):
+        return f"{self.saveTo}/{file}"
 
     def __schedule_next_picture(self):
         self.nextPictureTime = time() + self.cooldown
