@@ -57,6 +57,30 @@ class BirbConfig:
         """
         return float(self.config["Saving"]["LivePictureInterval"])
 
+    @property
+    def fullPictureResolution(self):
+        """
+        Resolution is a string as dimensions: <width>x<height>
+        Note that the camera modules only natively supports certain resolutions, and the supported resolutions depend on the camera module version. Any other resolution will be scaled by the GPU.
+        A list of native resolutions can be found on the camera module documentation under the '--mode' flag: https://www.raspberrypi.org/documentation/raspbian/applications/camera.md
+
+        :returns: The resolution to use for full pictures
+        :rtype: str
+        """
+        return self.config["Saving"]["FullPictureResolution"]
+
+    @property
+    def livePictureResolution(self):
+        """
+        Resolution is a string as dimensions: <width>x<height>
+        Note that the camera modules only natively supports certain resolutions, and the supported resolutions depend on the camera module version. Any other resolution will be scaled by the GPU.
+        A list of native resolutions can be found on the camera module documentation under the '--mode' flag: https://www.raspberrypi.org/documentation/raspbian/applications/camera.md
+
+        :returns: The resolution to use for full pictures
+        :rtype: str
+        """
+        return self.config["Saving"]["LivePictureResolution"]
+
     # ********************
     #  [Detection] Detection parameters
     # ********************
