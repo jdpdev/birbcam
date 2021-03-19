@@ -33,6 +33,17 @@ class BirbConfig:
         return self.config["Saving"]["Directory"]
 
     # ********************
+    #  [Detection] Detection parameters
+    # ********************
+    @property
+    def threshold(self):
+        return int(self.config["Detection"]["Threshold"])
+    
+    @property
+    def contourArea(self):
+        return int(self.config["Detection"]["ContourArea"])
+
+    # ********************
     #  [Debug] Debug details
     # ********************
     @property
