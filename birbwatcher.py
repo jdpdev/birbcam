@@ -31,13 +31,13 @@ class BirbWatcher:
         self.config = config
 
         self.fullPictureTaker = picturetaker.PictureTaker(
-            FULL_RES, 
+            config.fullPictureResolution, 
             config.fullPictureInterval, 
             f"{config.saveTo}/full", 
             picturetaker.filename_filestamp
         )
         self.livePictureTaker = picturetaker.PictureTaker(
-            LIVE_RES,
+            config.livePictureResolution,
             config.livePictureInterval,
             config.saveTo,
             picturetaker.filename_live_picture
