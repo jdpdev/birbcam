@@ -33,7 +33,7 @@ class BirbWatcher:
         self.fullPictureTaker = picturetaker.PictureTaker(
             FULL_RES, 
             FULL_PICTURE_STEP, 
-            config.saveTo, 
+            f"{config.saveTo}/full", 
             picturetaker.filename_filestamp
         )
         self.livePictureTaker = picturetaker.PictureTaker(
@@ -84,7 +84,13 @@ class BirbWatcher:
             # take our pictures if it's time
             didTakeFullPicture = False
             self.livePictureTaker.take_picture(camera, rawCapture)
-            if shouldTrigger: didTakeFullPicture = self.fullPictureTaker.take_picture(camera, rawCapture)
+            
+            if not self.pauseRecording and shouldTrigger: 
+                didTakeFullPicture = self.fullPictureTaker.take_picture(camera, rawCapture)
+
+                if didTakeFullPicture:
+                    filename = picturetaker.filename_filestamp()
+                    cv2.imwrite(f"{self.config.saveTo}/thumb/{filename}", now)
 
             # visualize
             if self.config.debugMode:
@@ -222,8 +228,8 @@ class BirbWatcher:
         cv2.imshow('processors', quad)
 
         if didTakeFullPicture:
-            stamp = picturetaker.filename_filestamp
-            cv2.imwrite(f"{self.config.saveTo}/debug/{stamp}.jpg", quad)
+            stamp = picturetaker.filename_filestamp()
+            cv2.imwrite(f"{self.config.saveTo}/debug/{stamp}", quad)
 
     def __draw_exposure_histogram(self, now, resolution):
         halfHeight = int(resolution[1] / 2)
