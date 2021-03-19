@@ -11,6 +11,7 @@ from setproctitle import setproctitle
 
 import picturetaker
 from optionflipper import OptionFlipper
+from optioncounter import OptionCounter
 
 FULL_RES = (4056, 3040)
 LIVE_RES = (800, 600)
@@ -46,6 +47,8 @@ class BirbWatcher:
         self.isoFlipper = OptionFlipper(isoSpeeds, 1)
         self.exposureFlipper = OptionFlipper(exposureComps, 2)
         self.wbFlipper = OptionFlipper(whiteBalanceModes)
+        self.thresholdCounter = OptionCounter(0, 255, 5, self.config.threshold)
+        self.contourCounter = OptionCounter(0, 1500, 50, self.config.contourArea)
 
         self.pauseRecording = True
 
@@ -115,7 +118,7 @@ class BirbWatcher:
         cv2.accumulateWeighted(gray, average, 0.1)
         convertAvg = cv2.convertScaleAbs(average)
         frameDelta = cv2.absdiff(gray, convertAvg)
-        thresh = cv2.threshold(frameDelta, 90, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.threshold(frameDelta, self.thresholdCounter.value, 255, cv2.THRESH_BINARY)[1]
         thresh = cv2.dilate(thresh, None, iterations=2)
 
         return (average, frameDelta, thresh, convertAvg)
@@ -128,7 +131,7 @@ class BirbWatcher:
 
     def __should_trigger(self, contours):
         for c in contours:
-            if cv2.contourArea(c) < 600:
+            if cv2.contourArea(c) < self.contourCounter.value:
                 continue
             
             return True
@@ -169,6 +172,18 @@ class BirbWatcher:
         if key == ord("v"):
             camera.awb_mode = self.wbFlipper.previous()
 
+        if key == ord("t"):
+            self.thresholdCounter.next()
+
+        if key == ord("r"):
+            self.thresholdCounter.previous()
+
+        if key == ord("c"):
+            self.contourCounter.next()
+
+        if key == ord("x"):
+            self.contourCounter.previous()
+
         if key == ord("p"):
            self.pauseRecording = not self.pauseRecording
 
@@ -179,7 +194,7 @@ class BirbWatcher:
 
     def __show_debug(self, contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture):
         for c in contours:
-            if cv2.contourArea(c) < 600:
+            if cv2.contourArea(c) < self.contourCounter.value:
                 continue
             
             (x, y, w, h) = cv2.boundingRect(c)
@@ -195,6 +210,8 @@ class BirbWatcher:
         cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         cv2.putText(histogram, f"(I)SO (U): {self.isoFlipper.label}", (10, 80), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         cv2.putText(histogram, f"W(B) (V): {self.wbFlipper.label}", (10, 110), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(T)hreshold (R): {self.thresholdCounter.label}", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         
         if self.pauseRecording:
             cv2.putText(histogram, "PAUSED", (90, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
@@ -232,6 +249,6 @@ class BirbWatcher:
             cv2.line(blank, (x, resolution[1]),(x, height), color)
 
         #compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
-        cv2.putText(blank,"%d" % average,(average + 5, resolution[1] - 128),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 0))
+        cv2.putText(blank,"%d" % average,(average + 5, resolution[1] - 100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 0))
 
         return blank
