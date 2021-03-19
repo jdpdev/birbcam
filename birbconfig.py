@@ -27,10 +27,35 @@ class BirbConfig:
     # ********************
     @property
     def saveTo(self):
+        """
+        Root save location for images
+
+        :return: Root save path
+        :rtype: str
+        """
         arg = self.args.get("save")
         if arg != None: return arg
 
         return self.config["Saving"]["Directory"]
+
+    @property
+    def livePictureInterval(self):
+        """ Number of seconds between each live picture.
+
+        :returns: Number of seconds between each live picture, or 0 to disable
+        :rtype: float
+        """
+        return float(self.config["Saving"]["LivePictureInterval"])
+
+    @property
+    def fullPictureInterval(self):
+        """ 
+        Minimum number of seconds between each full picture. The actual elapsed time between full pictures can be longer than this if there is no picture event after the interval.
+
+        :returns: Number of seconds between each full picture
+        :rtype: float
+        """
+        return float(self.config["Saving"]["LivePictureInterval"])
 
     # ********************
     #  [Detection] Detection parameters
