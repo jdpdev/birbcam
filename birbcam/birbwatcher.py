@@ -1,7 +1,7 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
 from time import time, sleep
-import birbcam.common
+from birbcam.common import get_mask_real_size, get_mask_coords, extract_image_region, build_histogram, compare_histograms
 import cv2
 import numpy as np
 import imutils
@@ -9,16 +9,11 @@ import sched
 from datetime import datetime
 from setproctitle import setproctitle
 
-import birbcam.picturetaker
+from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live_picture
 from .optionflipper import OptionFlipper
 from .optioncounter import OptionCounter
 
-FULL_RES = (4056, 3040)
-LIVE_RES = (800, 600)
 PREVIEW_RES = (800, 600)
-
-LIVE_CAMERA_STEP = 10
-FULL_PICTURE_STEP = 10
 
 shutterSpeeds = [333333, 25000, 16666, 11111, 8000, 5555, 4166, 4000, 2857, 1333, 1000]
 shutterSpeedNames = ["30", "45", "60", "90", "125", "180", "250", "350", "500", "750", "1000"]
@@ -30,17 +25,17 @@ class BirbWatcher:
     def __init__(self, config):
         self.config = config
 
-        self.fullPictureTaker = picturetaker.PictureTaker(
+        self.fullPictureTaker = PictureTaker(
             config.fullPictureResolution, 
             config.fullPictureInterval, 
             f"{config.saveTo}/full", 
-            picturetaker.filename_filestamp
+            filename_filestamp
         )
-        self.livePictureTaker = picturetaker.PictureTaker(
+        self.livePictureTaker = PictureTaker(
             config.livePictureResolution,
             config.livePictureInterval,
             config.saveTo,
-            picturetaker.filename_live_picture
+            filename_live_picture
         )
 
         self.shutterFlipper = OptionFlipper(shutterSpeeds, 2, shutterSpeedNames)
@@ -64,8 +59,8 @@ class BirbWatcher:
 
     def __loop(self, camera, rawCapture, mask):
         average = None
-        mask_resolution = common.get_mask_real_size(mask, PREVIEW_RES)
-        mask_bounds = common.get_mask_coords(mask, PREVIEW_RES)
+        mask_resolution = get_mask_real_size(mask, PREVIEW_RES)
+        mask_bounds = get_mask_coords(mask, PREVIEW_RES)
 
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             (now, masked, gray) = self.__take_preview(rawCapture, mask_bounds)
@@ -83,10 +78,10 @@ class BirbWatcher:
             
             # take our pictures if it's time
             didTakeFullPicture = False
-            self.livePictureTaker.take_picture(camera, rawCapture)
+            self.livePictureTaker.take_picture(camera)
             
             if not self.pauseRecording and shouldTrigger: 
-                didTakeFullPicture = self.fullPictureTaker.take_picture(camera, rawCapture)
+                didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
 
                 if didTakeFullPicture:
                     filename = picturetaker.filename_filestamp()
@@ -105,8 +100,8 @@ class BirbWatcher:
         #now = imutils.resize(now, 640, 480)
         rawCapture.truncate(0)
 
-        masked = common.extract_image_region(now, mask_bounds)
-        gray = common.extract_image_region(gray, mask_bounds)
+        masked = extract_image_region(now, mask_bounds)
+        gray = extract_image_region(gray, mask_bounds)
 
         return (now, masked, gray)
 
@@ -145,9 +140,9 @@ class BirbWatcher:
         return False
 
     def __compare_histograms(self, frame, key):
-        (ahist, adata) = common.build_histogram(frame)
-        (bhist, bdata) = common.build_histogram(key)
-        compare = common.compare_histograms(ahist, bhist)
+        (ahist, adata) = build_histogram(frame)
+        (bhist, bdata) = build_histogram(key)
+        compare = compare_histograms(ahist, bhist)
 
         return compare
 
