@@ -13,7 +13,7 @@ class PictureTaker:
     def readyForPicture(self):
         return time() >= self.nextPictureTime
 
-    def take_picture(self, camera, rawCapture):
+    def take_picture(self, camera):
         if not self.readyForPicture: 
             return False
 
