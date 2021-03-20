@@ -84,7 +84,7 @@ class BirbWatcher:
                 didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
 
                 if didTakeFullPicture:
-                    filename = picturetaker.filename_filestamp()
+                    filename = filename_filestamp()
                     cv2.imwrite(f"{self.config.saveTo}/thumb/{filename}", now)
 
             # visualize
@@ -223,7 +223,7 @@ class BirbWatcher:
         cv2.imshow('processors', quad)
 
         if didTakeFullPicture:
-            stamp = picturetaker.filename_filestamp()
+            stamp = filename_filestamp()
             cv2.imwrite(f"{self.config.saveTo}/debug/{stamp}", quad)
 
     def __draw_exposure_histogram(self, now, resolution):
