@@ -1,9 +1,9 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
-import common
+import birbcam.common
 import cv2
 
-from rectanglegrabber import RectangleGrabber
+from .rectanglegrabber import RectangleGrabber
 
 class ImageMask:
     maskWindowName = "Set Detection Region"

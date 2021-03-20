@@ -1,7 +1,7 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
 from time import time, sleep
-import common
+import birbcam.common
 import cv2
 import numpy as np
 import imutils
@@ -9,9 +9,9 @@ import sched
 from datetime import datetime
 from setproctitle import setproctitle
 
-import picturetaker
-from optionflipper import OptionFlipper
-from optioncounter import OptionCounter
+import birbcam.picturetaker
+from .optionflipper import OptionFlipper
+from .optioncounter import OptionCounter
 
 FULL_RES = (4056, 3040)
 LIVE_RES = (800, 600)

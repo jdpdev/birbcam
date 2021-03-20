@@ -1,4 +1,4 @@
-from optioncounter import OptionCounter
+from birbcam.optioncounter import OptionCounter
 
 def test_should_init():
     counter = OptionCounter(1, 10, 1, 5)

@@ -1,15 +1,15 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
 from time import sleep
-import lensshading
+#import lensshading
 import sys
 import logging
 from setproctitle import setproctitle
 
-from birbconfig import BirbConfig
-from focusassist import FocusAssist
-from imagemask import ImageMask
-from birbwatcher import BirbWatcher
+from .birbconfig import BirbConfig
+from .focusassist import FocusAssist
+from .imagemask import ImageMask
+from .birbwatcher import BirbWatcher
 
 previewResolution = (640, 480)
 
