@@ -1,9 +1,9 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
-import common
+from birbcam.common import draw_aim_grid, draw_mask
 import cv2
 
-from rectanglegrabber import RectangleGrabber
+from .rectanglegrabber import RectangleGrabber
 
 class ImageMask:
     maskWindowName = "Set Detection Region"
@@ -38,8 +38,8 @@ class ImageMask:
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     
             image = frame.array
-            common.draw_mask(image, self._mask, self.maskWindowResolution)
-            common.draw_aim_grid(image, self.maskWindowResolution)
+            draw_mask(image, self._mask, self.maskWindowResolution)
+            draw_aim_grid(image, self.maskWindowResolution)
             rawCapture.truncate(0)
 
             cv2.imshow(self.maskWindowName, image)

@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 class BirbConfig:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read(f"{os.path.dirname(os.path.realpath(__file__))}/config.ini")
+        self.config.read(f"{os.path.dirname(os.path.realpath(__file__))}/../config.ini")
 
         self.ap = ArgumentParser()
         self.ap.add_argument("-f", "--file", default=None, help="path to the log file")

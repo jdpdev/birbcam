@@ -1,9 +1,9 @@
 from picamerax.array import PiRGBArray
 from picamerax import PiCamera
-import common
+from birbcam.common import draw_aim_grid
 import cv2
 
-from rectanglegrabber import RectangleGrabber
+from .rectanglegrabber import RectangleGrabber
 
 class FocusAssist:
     focusWindowName = "Focus Assist"
@@ -53,7 +53,7 @@ class FocusAssist:
             cv2.putText(image, str(int(laplacian_var)), (5,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
             # crosshair
-            common.draw_aim_grid(image, self.focusWindowResolution)
+            draw_aim_grid(image, self.focusWindowResolution)
             
             cv2.imshow(self.focusWindowName, image)
 
