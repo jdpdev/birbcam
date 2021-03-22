@@ -1,4 +1,6 @@
-from .optionflipper import OptionFlipper
+from ..optionflipper import OptionFlipper
+from .exposurestate import ExposureState
+from .watch import Watch
 from cv2 import normalize, calcHist, cvtColor, COLOR_BGR2GRAY
 from time import time
 import numpy as np
@@ -24,6 +26,7 @@ class ExposureAdjust:
         self._actualMargin = margin
 
         self._undoLastStop = None
+        self._currentState = self.change_state(Watch(10))
 
     @property
     def isAdjustingExposure(self):
@@ -32,6 +35,15 @@ class ExposureAdjust:
     @property
     def targetExposure(self):
         return self.targetLevel
+
+    def change_state(self, nextState: ExposureState):
+        if self._currentState != None:
+            self._currentState.release()
+
+        self._currentState = nextState
+
+        if self._currentState != None:
+            self._currentState.take_over(self.shutterFlipper, self.change_state, self.targetExposure, self.desiredMargin)
 
     def increase_exposure(self, amount):
         level = self.targetExposure + amount
@@ -142,3 +154,4 @@ class ExposureAdjust:
             total += y
 
         return int(average / total)
+
