@@ -12,6 +12,7 @@ from setproctitle import setproctitle
 from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live_picture
 from .optionflipper import OptionFlipper
 from .optioncounter import OptionCounter
+from .exposureadjust import ExposureAdjust
 
 PREVIEW_RES = (800, 600)
 
@@ -24,7 +25,7 @@ whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
 class BirbWatcher:
     def __init__(self, config):
         self.config = config
-
+        
         self.fullPictureTaker = PictureTaker(
             config.fullPictureResolution, 
             config.fullPictureInterval, 
@@ -45,8 +46,9 @@ class BirbWatcher:
         self.thresholdCounter = OptionCounter(0, 255, 5, self.config.threshold)
         self.contourCounter = OptionCounter(0, 1500, 50, self.config.contourArea)
 
+        self.exposureAdjust = ExposureAdjust(self.shutterFlipper, self.isoFlipper)
         self.pauseRecording = True
-
+        
     def run(self, camera, mask):
         camera.shutter_speed = self.shutterFlipper.value
         camera.iso = self.isoFlipper.value
@@ -65,6 +67,8 @@ class BirbWatcher:
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             (now, masked, gray) = self.__take_preview(rawCapture, mask_bounds)
 
+            isCheckingExposure = self.exposureAdjust.check_exposure(camera, now)
+
             if average is None:
                 average = self.__initialize_average(gray)
                 continue
@@ -80,7 +84,7 @@ class BirbWatcher:
             didTakeFullPicture = False
             self.livePictureTaker.take_picture(camera)
             
-            if not self.pauseRecording and shouldTrigger: 
+            if not self.pauseRecording and not isCheckingExposure and shouldTrigger: 
                 didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
 
                 if didTakeFullPicture:
@@ -89,7 +93,7 @@ class BirbWatcher:
 
             # visualize
             if self.config.debugMode:
-                self.__show_debug(contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture)
+                self.__show_debug(contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
 
             if not self.__key_listener(camera):
                 return False
@@ -185,6 +189,12 @@ class BirbWatcher:
         if key == ord("x"):
             self.contourCounter.previous()
 
+        if key == ord("+"):
+            self.exposureAdjust.increase_exposure(1)
+
+        if key == ord("-"):
+            self.exposureAdjust.decrease_exposure(1)
+
         if key == ord("p"):
            self.pauseRecording = not self.pauseRecording
 
@@ -193,7 +203,7 @@ class BirbWatcher:
 
         return True
 
-    def __show_debug(self, contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture):
+    def __show_debug(self, contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure):
         for c in contours:
             if cv2.contourArea(c) < self.contourCounter.value:
                 continue
@@ -215,7 +225,10 @@ class BirbWatcher:
         cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         
         if self.pauseRecording:
-            cv2.putText(histogram, "PAUSED", (90, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+            cv2.putText(histogram, "PAUSED", (150, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+        
+        if self.exposureAdjust.isAdjustingExposure:
+            cv2.putText(histogram, "EXPOSURE", (150, 70), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
         rtop = cv2.hconcat([masked, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
@@ -245,8 +258,16 @@ class BirbWatcher:
         average = int(average / total)
 
         for x, y in enumerate(now_data):
-            color = (0, 255, 0) if x == average else (255, 255, 255)
-            height = resolution[1] - 255 if x == average else resolution[1] - y;
+            color = (255, 255, 255)
+            height = resolution[1] - y
+
+            if x == self.exposureAdjust.targetExposure:
+                color = (0, 255, 0)
+                height = resolution[1] - 255
+            elif x == average:
+                color = (255, 255, 0)
+                height = resolution[1] - 255
+
             cv2.line(blank, (x, resolution[1]),(x, height), color)
 
         #compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)

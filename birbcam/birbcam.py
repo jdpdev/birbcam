@@ -18,9 +18,9 @@ def run_birbcam():
     config = BirbConfig()
 
     if not config.logFile is None:
-        logging.basicConfig(level=logging.INFO, filename=config.logFile, format='%(levelname)s: %(message)s')
+        logging.basicConfig(level=logging.INFO, filename=config.logFile, format='(%(asctime)s) %(levelname)s: %(message)s', datefmt="%H:%M:%S")
     else:
-        logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+        logging.basicConfig(level=logging.INFO, format='(%(asctime)s) %(levelname)s: %(message)s', datefmt="%H:%M:%S")
 
     logging.info(f"Saving output to: {config.saveTo}")
     if config.noCaptureMode: logging.info("Using No Capture Mode")
