@@ -13,6 +13,7 @@ from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live
 from .optionflipper import OptionFlipper
 from .optioncounter import OptionCounter
 from .exposureadjust import ExposureAdjust
+from .exposureadjust.utils import build_image_histogram, calculate_exposure_from_histogram
 
 PREVIEW_RES = (800, 600)
 
@@ -243,21 +244,11 @@ class BirbWatcher:
         halfHeight = int(resolution[1] / 2)
         blank = np.zeros((resolution[1],resolution[0],3), np.uint8)
 
-        now_hist = cv2.calcHist([now], [0], None, [256], [0,255])
-        cv2.normalize(now_hist, now_hist, 0, halfHeight, cv2.NORM_MINMAX)
-        now_data = np.int32(np.around(now_hist))
-        
-        max = now_data.max()
-        average = 0
-        total = 0
+        histogram = build_image_histogram(now)
+        average = calculate_exposure_from_histogram(histogram)
+        normalized = np.interp(histogram, (histogram.min(), histogram.max()), (0, halfHeight))
 
-        for x, y in enumerate(now_data):
-            average += y * x
-            total += y
-
-        average = int(average / total)
-
-        for x, y in enumerate(now_data):
+        for x, y in enumerate(normalized):
             color = (255, 255, 255)
             height = resolution[1] - y
 
