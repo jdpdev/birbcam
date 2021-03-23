@@ -2,7 +2,7 @@ from cv2 import cvtColor, calcHist, COLOR_BGR2GRAY
 import numpy as np
 
 def calculate_exposure(image):
-    histogram = calcHist([luminance], [0], None, [256], [0,255])
+    histogram = calcHist([image], [0], None, [256], [0,255])
     data = np.int32(np.around(histogram))
 
     max = data.max()
