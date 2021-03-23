@@ -16,8 +16,8 @@ from .exposureadjust import ExposureAdjust
 
 PREVIEW_RES = (800, 600)
 
-shutterSpeeds = [333333, 25000, 16666, 11111, 8000, 5555, 4166, 4000, 2857, 1333, 1000]
-shutterSpeedNames = ["30", "45", "60", "90", "125", "180", "250", "350", "500", "750", "1000"]
+shutterSpeeds =     [40000, 33333, 25000, 20000, 16667, 12500, 10000, 8000,  5556,  5000,  4000,  3125,  2500,  2000,  1563,  1250,  1000,   800]
+shutterSpeedNames = ["25",  "30",  "40",  "50",  "60",  "80",  "100", "125", "180", "200", "250", "320", "400", "500", "640", "800", "1000", "1250"]
 isoSpeeds = [100, 200, 400, 600, 800]
 exposureComps = [-12, -6, 0, 6, 12]
 whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
@@ -225,7 +225,7 @@ class BirbWatcher:
         cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         
         if self.pauseRecording:
-            cv2.putText(histogram, "PAUSED", (150, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+            cv2.putText(histogram, "PAUSED", (150, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
         
         if self.exposureAdjust.isAdjustingExposure:
             cv2.putText(histogram, "EXPOSURE", (150, 70), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
