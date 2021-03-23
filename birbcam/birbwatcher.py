@@ -39,7 +39,7 @@ class BirbWatcher:
             filename_live_picture
         )
 
-        self.shutterFlipper = OptionFlipper(shutterSpeeds, 2, shutterSpeedNames)
+        self.shutterFlipper = OptionFlipper(shutterSpeeds, 6, shutterSpeedNames)
         self.isoFlipper = OptionFlipper(isoSpeeds, 1)
         self.exposureFlipper = OptionFlipper(exposureComps, 2)
         self.wbFlipper = OptionFlipper(whiteBalanceModes)
@@ -67,11 +67,11 @@ class BirbWatcher:
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             (now, masked, gray) = self.__take_preview(rawCapture, mask_bounds)
 
-            isCheckingExposure = self.exposureAdjust.check_exposure(camera, now)
-
             if average is None:
                 average = self.__initialize_average(gray)
                 continue
+
+            isCheckingExposure = self.exposureAdjust.check_exposure(camera, gray)
 
             (newAverage, frameDelta, thresh, convertAvg) = self.__process_average(average, gray)
             average = newAverage
@@ -93,7 +93,7 @@ class BirbWatcher:
 
             # visualize
             if self.config.debugMode:
-                self.__show_debug(contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
+                self.__show_debug(contours, masked, now, gray, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
 
             if not self.__key_listener(camera):
                 return False
@@ -203,7 +203,7 @@ class BirbWatcher:
 
         return True
 
-    def __show_debug(self, contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure):
+    def __show_debug(self, contours, masked, now, exposure, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure):
         for c in contours:
             if cv2.contourArea(c) < self.contourCounter.value:
                 continue
@@ -215,7 +215,7 @@ class BirbWatcher:
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        histogram = self.__draw_exposure_histogram(cv2.cvtColor(now, cv2.COLOR_BGR2GRAY), mask_resolution)
+        histogram = self.__draw_exposure_histogram(exposure, mask_resolution)
 
         cv2.putText(histogram, f"(S)hutter (A): {self.shutterFlipper.label}", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
