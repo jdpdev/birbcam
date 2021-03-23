@@ -12,7 +12,7 @@ class Watch(ExposureState):
         self.__increment_time()
 
     def setup(self):
-        logging.info(f"[Watch] take_over")
+        logging.info(f"[Watch] every {self._interval}")
 
     def update(self, camera, image):
         if time() < self._nextCheckTime:
@@ -20,6 +20,7 @@ class Watch(ExposureState):
 
         level = calculate_exposure(image)
         delta = level - self._targetLevel
+        logging.info(f"[Watch] level {level}, delta {delta}")
 
         if abs(delta) > self._levelMargin:
             if delta > 0:

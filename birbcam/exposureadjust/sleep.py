@@ -6,9 +6,7 @@ class Sleep(ExposureState):
     def __init__(self, waitTime):
         super().__init__()
         self._releaseTime = time() + waitTime
-
-    def setup(self):
-        logging.info(f"[Sleep] take_over")
+        logging.info(f"[Sleep] for {waitTime}")
 
     def update(self, camera, image):
         if time() < self._releaseTime:
