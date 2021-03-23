@@ -1,11 +1,12 @@
 from .exposurestate import ExposureState
 from .sleep import Sleep
-from .watch import Watch
 from .utils import calculate_exposure
-import time
+from time import time
+import logging
 
 class Adjust(ExposureState):
     def __init__(self):
+        super().__init__()
         self._nextLookTime = 0
         self._lastExposure = None
 
@@ -18,10 +19,11 @@ class Adjust(ExposureState):
         if self.check_exposure(exposure):
             self.finish()
 
+        self._isAdjusting = True
         self._lastExposure = exposure
 
         self.do_adjust(camera)
-        self._nextLookTime = time() + 1
+        self._nextLookTime = time() + 2
 
     def check_exposure(self, exposure):
         return True
@@ -30,4 +32,5 @@ class Adjust(ExposureState):
         return
 
     def finish(self):
-        self._changeState(Sleep(300), Watch(10))
+        self._isAdjusting = False
+        self._changeState(Sleep(300))

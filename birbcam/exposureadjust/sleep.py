@@ -1,14 +1,17 @@
 from .exposurestate import ExposureState
-import time
+from time import time
+import logging
 
 class Sleep(ExposureState):
-    def __init__(self, waitTime, next):
+    def __init__(self, waitTime):
         super().__init__()
         self._releaseTime = time() + waitTime
-        self._nextState = next
+
+    def setup(self):
+        logging.info(f"[Sleep] take_over")
 
     def update(self, camera, image):
         if time() < self._releaseTime:
             return
 
-        self._changeState(self._nextState)
+        self._changeState(None)

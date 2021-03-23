@@ -26,11 +26,12 @@ class ExposureAdjust:
         self._actualMargin = margin
 
         self._undoLastStop = None
-        self._currentState = self.change_state(Watch(10))
+        self._currentState = None
+        self.change_state(Watch(10))
 
     @property
     def isAdjustingExposure(self):
-        return self._isAdjusting
+        return self._currentState.isAdjustingExposure if self._currentState != None else False
 
     @property
     def targetExposure(self):
@@ -41,6 +42,9 @@ class ExposureAdjust:
             self._currentState.release()
 
         self._currentState = nextState
+
+        if self._currentState == None:
+            self._currentState = Watch(10)
 
         if self._currentState != None:
             self._currentState.take_over(self.shutterFlipper, self.change_state, self.targetExposure, self.desiredMargin)
@@ -62,96 +66,5 @@ class ExposureAdjust:
         self.targetLevel = level
         
     def check_exposure(self, camera, image):
-        #logging.info(f"[check_exposure] {time() - self.lastAdjustTime}")
-
-        if time() - self.lastAdjustTime < 10:
-            return False
-
-        if self._isAdjusting and time() < self.checkExposureTime:
-            return True
-
-        imageLevel = self.__calculate_exposure(image)
-        #logging.info(f"[check_exposure] target: {self.targetLevel}, image: {imageLevel}")
-
-        if abs(imageLevel - self.targetLevel) < self.desiredMargin:
-            if not self._isAdjusting:
-                return False
-            else:
-                return self.__finish_adjust()
-
-        isAdjusting = False
-        if self._isAdjusting:
-            isAdjusting = self.__start_adjusting(camera, imageLevel)
-        else:
-            isAdjusting = self.__check_adjustment(camera, imageLevel)
-        
-        return isAdjusting
-
-    def __start_adjusting(self, camera, imageLevel):
-        logging.info(f"[__start_adjusting]")
-        self._isAdjusting = True
-        return self.__adjust(camera, imageLevel)
-
-    def __check_adjustment(self, camera, imageLevel):
-        now = time()
-
-        if now < self.checkExposureTime:
-            return True
-
-        logging.info(f"[__check_adjustment]")
-        return self.__adjust(camera, imageLevel)
-
-    def __adjust(self, camera, imageLevel):
-        self.checkExposureTime = time() + 1
-
-        if self.lastAdjustLevel != None:
-            lastDelta = self.lastAdjustLevel - self.targetLevel
-            nowDelta = imageLevel - self.targetLevel
-
-            # if sign switches, pick the closest
-            if np.sign(nowDelta) != np.sign(lastDelta):
-                if abs(lastDelta) > abs(nowDelta):
-                    self._undoLastStop()
-
-                return self.__finish_adjust()
-        
-        # stop up
-        if self.targetLevel < imageLevel:
-            logging.info(f"[__adjust] stop up")
-            if self.shutterFlipper.is_at_end: return self.__finish_adjust()
-            camera.shutter_speed = self.shutterFlipper.next()
-            self._undoLastStop = self.shutterFlipper.previous
-
-        # stop down
-        else:
-            logging.info(f"[__adjust] stop down")
-            if self.shutterFlipper.is_at_start: return self.__finish_adjust()
-            camera.shutter_speed = self.shutterFlipper.previous()
-            self._undoLastStop = self.shutterFlipper.next
-
-        self.lastAdjustLevel = imageLevel
-
-        return True
-
-    def __finish_adjust(self):
-        logging.info(f"[__finish_adjust]")
-        self._isAdjusting = False
-        self.lastAdjustTime += 10
-        return False
-
-
-    def __calculate_exposure(self, image):
-        luminance = cvtColor(image, COLOR_BGR2GRAY)
-        histogram = calcHist([luminance], [0], None, [256], [0,255])
-        data = np.int32(np.around(histogram))
-
-        max = data.max()
-        average = 0
-        total = 0
-
-        for x, y in enumerate(data):
-            average += y * x
-            total += y
-
-        return int(average / total)
-
+        self._currentState.update(camera, image)
+        return self._currentState.isAdjustingExposure
