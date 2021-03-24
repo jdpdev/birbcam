@@ -50,7 +50,13 @@ class ExposureAdjust:
             self._currentState = Watch(self._interval)
 
         if self._currentState != None:
-            self._currentState.take_over(self, self.shutterFlipper, self.change_state, self.targetExposure, self._actualMargin)
+            self._currentState.take_over(self, 
+                self.shutterFlipper, 
+                self.isoFlipper, 
+                self.change_state, 
+                self.targetExposure, 
+                self._actualMargin
+            )
         
     def check_exposure(self, camera, image):
         self._currentState.update(camera, image)
