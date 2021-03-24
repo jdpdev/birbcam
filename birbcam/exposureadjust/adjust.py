@@ -17,13 +17,14 @@ class Adjust(ExposureState):
         exposure = calculate_exposure(image)
 
         if self.check_exposure(exposure):
+            logging.info(f" >> Stop adjust")
             self.finish()
+        else:
+            self._isAdjusting = True
+            self._lastExposure = exposure
 
-        self._isAdjusting = True
-        self._lastExposure = exposure
-
-        self.do_adjust(camera)
-        self._nextLookTime = time() + 2
+            self.do_adjust(camera)
+            self._nextLookTime = time() + 2
 
     def check_exposure(self, exposure):
         return True

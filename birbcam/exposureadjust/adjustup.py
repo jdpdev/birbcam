@@ -15,7 +15,7 @@ class AdjustUp(Adjust):
     
     def check_exposure(self, exposure):
         delta = exposure - self._targetLevel
-        logging.info(f"[AdjustUp] {exposure}, {delta}, {self._levelMargin}")
+        logging.info(f"[AdjustUp] {exposure}, {delta} < {self._levelMargin}, {self._lastExposure}")
         
         if self._lastExposure != None:
             lastDelta = self._lastExposure - self._targetLevel
