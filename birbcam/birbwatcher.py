@@ -10,6 +10,7 @@ from datetime import datetime
 from setproctitle import setproctitle
 
 from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live_picture
+from .birbconfig import BirbConfig
 from .optionflipper import OptionFlipper
 from .optioncounter import OptionCounter
 from .exposureadjust import ExposureAdjust
@@ -24,7 +25,7 @@ exposureComps = [-12, -6, 0, 6, 12]
 whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
 
 class BirbWatcher:
-    def __init__(self, config):
+    def __init__(self, config: BirbConfig):
         self.config = config
         
         self.fullPictureTaker = PictureTaker(
@@ -47,7 +48,13 @@ class BirbWatcher:
         self.thresholdCounter = OptionCounter(0, 255, 5, self.config.threshold)
         self.contourCounter = OptionCounter(0, 1500, 50, self.config.contourArea)
 
-        self.exposureAdjust = ExposureAdjust(self.shutterFlipper, self.isoFlipper)
+        self.exposureAdjust = ExposureAdjust(
+            self.shutterFlipper, 
+            self.isoFlipper, 
+            interval=config.exposureInterval,
+            targetLevel=config.exposureLevel,
+            margin=config.exposureError
+        )
         self.pauseRecording = True
         
     def run(self, camera, mask):

@@ -11,7 +11,8 @@ class ExposureState:
     def setup(self):
         return
 
-    def take_over(self, shutterFlipper: OptionFlipper, changeState, targetLevel: int, levelMargin: int):
+    def take_over(self, exposurer, shutterFlipper: OptionFlipper, changeState, targetLevel: int, levelMargin: int):
+        self._exposurer = exposurer 
         self._shutterFlipper = shutterFlipper
         self._changeState = changeState
         self._targetLevel = targetLevel

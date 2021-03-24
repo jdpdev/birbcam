@@ -26,7 +26,7 @@ class BirbConfig:
     #  [Saving] Save location details
     # ********************
     @property
-    def saveTo(self):
+    def saveTo(self) -> str:
         """
         Root save location for images
 
@@ -39,7 +39,7 @@ class BirbConfig:
         return self.config["Saving"]["Directory"]
 
     @property
-    def livePictureInterval(self):
+    def livePictureInterval(self) -> float:
         """ Number of seconds between each live picture.
 
         :returns: Number of seconds between each live picture, or 0 to disable
@@ -48,7 +48,7 @@ class BirbConfig:
         return float(self.config["Saving"]["LivePictureInterval"])
 
     @property
-    def fullPictureInterval(self):
+    def fullPictureInterval(self) -> float:
         """ 
         Minimum number of seconds between each full picture. The actual elapsed time between full pictures can be longer than this if there is no picture event after the interval.
 
@@ -58,7 +58,7 @@ class BirbConfig:
         return float(self.config["Saving"]["LivePictureInterval"])
 
     @property
-    def fullPictureResolution(self):
+    def fullPictureResolution(self) -> str:
         """
         Resolution is a string as dimensions: <width>x<height>
         Note that the camera modules only natively supports certain resolutions, and the supported resolutions depend on the camera module version. Any other resolution will be scaled by the GPU.
@@ -70,7 +70,7 @@ class BirbConfig:
         return self.config["Saving"]["FullPictureResolution"]
 
     @property
-    def livePictureResolution(self):
+    def livePictureResolution(self) -> str:
         """
         Resolution is a string as dimensions: <width>x<height>
         Note that the camera modules only natively supports certain resolutions, and the supported resolutions depend on the camera module version. Any other resolution will be scaled by the GPU.
@@ -85,32 +85,45 @@ class BirbConfig:
     #  [Detection] Detection parameters
     # ********************
     @property
-    def threshold(self):
+    def threshold(self) -> int:
         return int(self.config["Detection"]["Threshold"])
     
     @property
-    def contourArea(self):
+    def contourArea(self) -> int:
         return int(self.config["Detection"]["ContourArea"])
+
+    @property 
+    def exposureInterval(self) -> int:
+        return int(self.config["Detection"]["ExposureInterval"])
+
+    @property 
+    def exposureLevel(self) -> int:
+        return int(self.config["Detection"]["ExposureLevel"])
+
+    @property 
+    def exposureError(self) -> int:
+        return int(self.config["Detection"]["ExposureError"])
+        
 
     # ********************
     #  [Debug] Debug details
     # ********************
     @property
-    def debugMode(self):
+    def debugMode(self) -> bool:
         #arg = self.args.get("debug")
         #if arg != None: return arg
 
         return self.config["Debug"].getboolean("Enable", False)
 
     @property
-    def logFile(self):
+    def logFile(self) -> str:
         loc = self.config["Debug"].get("LogFile", None)
         if loc is None: return None
 
         return f"{os.path.dirname(os.path.realpath(__file__))}/{loc}"
 
     @property
-    def noCaptureMode(self):
+    def noCaptureMode(self) -> bool:
         arg = self.args.get("no-capture")
         if arg != None: return arg
 

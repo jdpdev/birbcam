@@ -34,4 +34,4 @@ class Adjust(ExposureState):
 
     def finish(self):
         self._isAdjusting = False
-        self._changeState(Sleep(300))
+        self._changeState(Sleep(self._exposurer.sleepInterval))
