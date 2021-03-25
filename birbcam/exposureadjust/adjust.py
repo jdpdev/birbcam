@@ -1,7 +1,7 @@
 from .exposurestate import ExposureState
 from .sleep import Sleep
 from .utils import calculate_exposure
-from time import time
+import time
 import logging
 
 class Adjust(ExposureState):
@@ -11,7 +11,7 @@ class Adjust(ExposureState):
         self._lastExposure = None
 
     def update(self, camera, image):
-        if time() < self._nextLookTime:
+        if time.time() < self._nextLookTime:
             return
 
         exposure = calculate_exposure(image)
@@ -24,7 +24,7 @@ class Adjust(ExposureState):
             self._lastExposure = exposure
 
             self.do_adjust(camera)
-            self._nextLookTime = time() + 2
+            self._nextLookTime = time.time() + 2
 
     def check_exposure(self, exposure):
         return True
