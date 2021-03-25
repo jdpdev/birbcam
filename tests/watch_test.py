@@ -10,7 +10,7 @@ def test_not_time_to_update():
     with patch('birbcam.exposureadjust.utils.calculate_exposure', MagicMock(return_value=100)) as mock_calculate_exposure:
         mockChangeState = Mock()
         watch = Watch(50)
-        watch.take_over(None, None, mockChangeState, 100, 10)
+        watch.take_over(None, None, None, mockChangeState, 100, 10)
         watch.update(None, None)
 
         assert not mock_calculate_exposure.called
@@ -20,7 +20,7 @@ def test_not_time_to_update():
 def test_no_exposure_adjustment():
     mockChangeState = Mock()
     watch = Watch(50)
-    watch.take_over(None, None, mockChangeState, 100, 10)
+    watch.take_over(None, None, None, mockChangeState, 100, 10)
     watch.update(None, None)
 
     assert not mockChangeState.called
@@ -32,7 +32,7 @@ def test_step_up():
         assert state.__class__.__name__ == AdjustUp.__class__.__name__
     
     watch = Watch(50)
-    watch.take_over(None, None, mockChangeState, 100, 10)
+    watch.take_over(None, None, None, mockChangeState, 100, 10)
     watch.update(None, None)
 
 @patch('time.time', MagicMock(return_value=25))
@@ -42,5 +42,5 @@ def test_step_down():
         assert state.__class__.__name__ == AdjustDown.__class__.__name__
     
     watch = Watch(50)
-    watch.take_over(None, None, mockChangeState, 100, 10)
+    watch.take_over(None, None, None, mockChangeState, 100, 10)
     watch.update(None, None)
