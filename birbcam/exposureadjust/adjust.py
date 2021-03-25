@@ -10,7 +10,11 @@ class Adjust(ExposureState):
         self._nextLookTime = 0
         self._lastExposure = None
 
+    def reset_last_exposure(self):
+        self._lastExposure = None
+
     def update(self, camera, image):
+        print(f"[update] {time.time()} < {self._nextLookTime}")
         if time.time() < self._nextLookTime:
             return
 
