@@ -15,6 +15,14 @@ class OptionFlipper:
         else:
             return self.labels[self.index]
 
+    @property 
+    def is_at_start(self):
+        return self.index == 0
+
+    @property 
+    def is_at_end(self):
+        return self.index == len(self.options) - 1
+
     def next(self):
         return self.__flip(1)
 
