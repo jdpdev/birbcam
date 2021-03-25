@@ -1,3 +1,5 @@
+Version **1.0 Sparrow** is official! [Download ZIP repository here](https://github.com/jdpdev/birbcam/releases/tag/v1.0)
+
 # birbcam
 
 A Raspberry Pi-powered, change-activated camera for watching bird feeders.
