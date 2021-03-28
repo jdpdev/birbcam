@@ -42,7 +42,7 @@ Important settings are saved in the `config.ini` file; some can be overridden by
 * `[Detection] Threshold` - How strong the difference between the live and reference pictures must be to register as a changed pixel. Higher is less sensitive.
 * `[Detection] ContourArea` - How big a detected, continuous difference region must be to trigger a full picture. This balances out noise from the `Threshold` setting. Higher is less sensitive.
 * `[Detection] ExposureInterval` - Number of seconds between exposure checks
-* `[Detection] ExposureLevel` - Target exposure level
+* `[Detection] ExposureLevel` - Target exposure level. The ideal value depends on your set up (feeder color, direct/indirect light, etc), but the default of 100 is a good starting place. 
 * `[Detection] ExposureError` - Acceptable error +/- `ExposureLevel`
 * `[Debug] Enable` - Debug mode shows live images from the camera and detector. Can be toggled when running with `D` key.
 
