@@ -32,6 +32,10 @@ class ExposureAdjust:
     def targetExposure(self):
         return self.targetLevel
 
+    @targetExposure.setter
+    def targetExposure(self, value):
+        self.targetLevel = value
+
     @property
     def sleepInterval(self):
         return self._interval

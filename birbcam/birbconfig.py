@@ -100,6 +100,15 @@ class BirbConfig:
     def exposureLevel(self) -> int:
         return int(self.config["Detection"]["ExposureLevel"])
 
+    @exposureLevel.setter
+    def exposureLevel(self, value: int):
+        if value < 0:
+            value = 0
+        elif value > 200:
+            value = 200
+
+        self.config["Detection"]["ExposureLevel"] = str(value)
+
     @property 
     def exposureError(self) -> int:
         return int(self.config["Detection"]["ExposureError"])
@@ -114,6 +123,10 @@ class BirbConfig:
         #if arg != None: return arg
 
         return self.config["Debug"].getboolean("Enable", False)
+
+    @debugMode.setter
+    def debugMode(self, value: bool):
+        self.config["Debug"]["Enable"] = str(value)
 
     @property
     def logFile(self) -> str:

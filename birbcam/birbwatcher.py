@@ -99,8 +99,14 @@ class BirbWatcher:
                     cv2.imwrite(f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}", now)
 
             # visualize
+            window = (None, None)
             if self.config.debugMode:
-                self.__show_debug(contours, masked, now, gray, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
+                window = self.__show_debug(contours, masked, now, gray, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
+            else:
+                window = self.__show_control_console(gray, (600,400))
+
+            if window[0] != None:
+                cv2.imshow("console", window[1])
 
             if not self.__key_listener(camera):
                 return False
@@ -196,19 +202,28 @@ class BirbWatcher:
         if key == ord("x"):
             self.contourCounter.previous()
 
-        if key == ord("+"):
-            self.exposureAdjust.increase_exposure(1)
+        if key == ord("="):
+            self.config.exposureLevel += 2
+            self.exposureAdjust.targetExposure = self.config.exposureLevel
 
         if key == ord("-"):
-            self.exposureAdjust.decrease_exposure(1)
+            self.config.exposureLevel -= 2
+            self.exposureAdjust.targetExposure = self.config.exposureLevel
 
         if key == ord("p"):
            self.pauseRecording = not self.pauseRecording
+
+        if key == ord("d"):
+            self.config.debugMode = not self.config.debugMode
 
         if key == ord("q"):
             return False
 
         return True
+
+    def __show_control_console(self, exposure, resolution):
+        canvas = self.__draw_control_panel(exposure, resolution)
+        return ('control console', canvas)
 
     def __show_debug(self, contours, masked, now, exposure, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure):
         for c in contours:
@@ -222,28 +237,39 @@ class BirbWatcher:
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        histogram = self.__draw_exposure_histogram(exposure, mask_resolution)
-
-        cv2.putText(histogram, f"(S)hutter (A): {self.shutterFlipper.label}", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(I)SO (U): {self.isoFlipper.label}", (10, 80), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"W(B) (V): {self.wbFlipper.label}", (10, 110), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(T)hreshold (R): {self.thresholdCounter.label}", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        
-        if self.pauseRecording:
-            cv2.putText(histogram, "PAUSED", (150, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
-        
-        if self.exposureAdjust.isAdjustingExposure:
-            cv2.putText(histogram, "EXPOSURE", (150, 70), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+        histogram = self.__draw_control_panel(exposure, mask_resolution)
 
         rtop = cv2.hconcat([masked, histogram])
         rbottom = cv2.hconcat([frameDelta, thresh])
         quad = cv2.vconcat([rtop, rbottom])
-        cv2.imshow('processors', quad)
-
+        
         if didTakeFullPicture[0] == True:
             cv2.imwrite(f"{self.config.saveTo}/debug/{didTakeFullPicture[1]}", quad)
+
+        return ('debug console', quad)
+
+    def __draw_control_panel(self, exposure, mask_resolution):
+        histogram = self.__draw_exposure_histogram(exposure, mask_resolution)
+
+        cv2.putText(histogram, f"(S)hutter (A): {self.shutterFlipper.label}", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 40), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(I)SO (U): {self.isoFlipper.label}", (10, 60), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"W(B) (V): {self.wbFlipper.label}", (10, 80), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(T)hreshold (R): {self.thresholdCounter.label}", (10, 100), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 120), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+
+        if self.config.debugMode:
+            cv2.putText(histogram, f"(D) Console", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        else:
+            cv2.putText(histogram, f"(D) Debug", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        
+        if self.pauseRecording:
+            cv2.putText(histogram, "PAUSED", (180, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+        
+        if self.exposureAdjust.isAdjustingExposure:
+            cv2.putText(histogram, "EXPOSURE", (180, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+
+        return histogram
 
     def __draw_exposure_histogram(self, now, resolution):
         halfHeight = int(resolution[1] / 2)
@@ -268,5 +294,7 @@ class BirbWatcher:
 
         #compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
         cv2.putText(blank,"%d" % average,(average + 5, resolution[1] - 100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 0))
+        cv2.putText(blank,"+",(self.exposureAdjust.targetExposure + 5, resolution[1] - 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 255, 0))
+        cv2.putText(blank,"-",(self.exposureAdjust.targetExposure - 15, resolution[1] - 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 255, 0))
 
         return blank
