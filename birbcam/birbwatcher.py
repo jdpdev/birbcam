@@ -202,11 +202,13 @@ class BirbWatcher:
         if key == ord("x"):
             self.contourCounter.previous()
 
-        if key == ord("+"):
-            self.exposureAdjust.increase_exposure(1)
+        if key == ord("="):
+            self.config.exposureLevel += 2
+            self.exposureAdjust.targetExposure = self.config.exposureLevel
 
         if key == ord("-"):
-            self.exposureAdjust.decrease_exposure(1)
+            self.config.exposureLevel -= 2
+            self.exposureAdjust.targetExposure = self.config.exposureLevel
 
         if key == ord("p"):
            self.pauseRecording = not self.pauseRecording
@@ -287,5 +289,7 @@ class BirbWatcher:
 
         #compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)
         cv2.putText(blank,"%d" % average,(average + 5, resolution[1] - 100),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255, 255, 0))
+        cv2.putText(blank,"+",(self.exposureAdjust.targetExposure + 5, resolution[1] - 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 255, 0))
+        cv2.putText(blank,"-",(self.exposureAdjust.targetExposure - 15, resolution[1] - 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0, 255, 0))
 
         return blank
