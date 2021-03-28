@@ -252,17 +252,22 @@ class BirbWatcher:
         histogram = self.__draw_exposure_histogram(exposure, mask_resolution)
 
         cv2.putText(histogram, f"(S)hutter (A): {self.shutterFlipper.label}", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(I)SO (U): {self.isoFlipper.label}", (10, 80), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"W(B) (V): {self.wbFlipper.label}", (10, 110), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(T)hreshold (R): {self.thresholdCounter.label}", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
-        cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 40), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(I)SO (U): {self.isoFlipper.label}", (10, 60), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"W(B) (V): {self.wbFlipper.label}", (10, 80), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(T)hreshold (R): {self.thresholdCounter.label}", (10, 100), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 120), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+
+        if self.config.debugMode:
+            cv2.putText(histogram, f"(D) Console", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        else:
+            cv2.putText(histogram, f"(D) Debug", (10, 140), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         
         if self.pauseRecording:
-            cv2.putText(histogram, "PAUSED", (150, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+            cv2.putText(histogram, "PAUSED", (180, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
         
         if self.exposureAdjust.isAdjustingExposure:
-            cv2.putText(histogram, "EXPOSURE", (150, 70), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+            cv2.putText(histogram, "EXPOSURE", (180, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
         return histogram
 
