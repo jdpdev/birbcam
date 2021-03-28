@@ -10,21 +10,24 @@ from datetime import datetime
 from setproctitle import setproctitle
 
 from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live_picture
+from .birbconfig import BirbConfig
 from .optionflipper import OptionFlipper
 from .optioncounter import OptionCounter
+from .exposureadjust import ExposureAdjust
+from .exposureadjust.utils import build_image_histogram, calculate_exposure_from_histogram
 
 PREVIEW_RES = (800, 600)
 
-shutterSpeeds = [333333, 25000, 16666, 11111, 8000, 5555, 4166, 4000, 2857, 1333, 1000]
-shutterSpeedNames = ["30", "45", "60", "90", "125", "180", "250", "350", "500", "750", "1000"]
+shutterSpeeds =     [40000, 33333, 25000, 20000, 16667, 12500, 10000, 8000,  5556,  5000,  4000,  3125,  2500,  2000,  1563,  1250,  1000,   800]
+shutterSpeedNames = ["25",  "30",  "40",  "50",  "60",  "80",  "100", "125", "180", "200", "250", "320", "400", "500", "640", "800", "1000", "1250"]
 isoSpeeds = [100, 200, 400, 600, 800]
 exposureComps = [-12, -6, 0, 6, 12]
 whiteBalanceModes = ["auto", "sunlight", "cloudy", "shade"]
 
 class BirbWatcher:
-    def __init__(self, config):
+    def __init__(self, config: BirbConfig):
         self.config = config
-
+        
         self.fullPictureTaker = PictureTaker(
             config.fullPictureResolution, 
             config.fullPictureInterval, 
@@ -38,15 +41,22 @@ class BirbWatcher:
             filename_live_picture
         )
 
-        self.shutterFlipper = OptionFlipper(shutterSpeeds, 2, shutterSpeedNames)
+        self.shutterFlipper = OptionFlipper(shutterSpeeds, 6, shutterSpeedNames)
         self.isoFlipper = OptionFlipper(isoSpeeds, 1)
         self.exposureFlipper = OptionFlipper(exposureComps, 2)
         self.wbFlipper = OptionFlipper(whiteBalanceModes)
         self.thresholdCounter = OptionCounter(0, 255, 5, self.config.threshold)
         self.contourCounter = OptionCounter(0, 1500, 50, self.config.contourArea)
 
+        self.exposureAdjust = ExposureAdjust(
+            self.shutterFlipper, 
+            self.isoFlipper, 
+            interval=config.exposureInterval,
+            targetLevel=config.exposureLevel,
+            margin=config.exposureError
+        )
         self.pauseRecording = True
-
+        
     def run(self, camera, mask):
         camera.shutter_speed = self.shutterFlipper.value
         camera.iso = self.isoFlipper.value
@@ -69,6 +79,8 @@ class BirbWatcher:
                 average = self.__initialize_average(gray)
                 continue
 
+            isCheckingExposure = self.exposureAdjust.check_exposure(camera, gray)
+
             (newAverage, frameDelta, thresh, convertAvg) = self.__process_average(average, gray)
             average = newAverage
 
@@ -77,15 +89,14 @@ class BirbWatcher:
             shouldTrigger = self.__should_trigger(contours)
             
             # take our pictures if it's time
-            didTakeFullPicture = False
+            didTakeFullPicture = (False, None)
             self.livePictureTaker.take_picture(camera)
             
-            if not self.pauseRecording and shouldTrigger: 
+            if not self.pauseRecording and not isCheckingExposure and shouldTrigger: 
                 didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
 
-                if didTakeFullPicture:
-                    filename = filename_filestamp()
-                    cv2.imwrite(f"{self.config.saveTo}/thumb/{filename}", now)
+                if didTakeFullPicture[0]:
+                    cv2.imwrite(f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}", now)
 
             # visualize
             window = (None, None)
@@ -191,6 +202,12 @@ class BirbWatcher:
         if key == ord("x"):
             self.contourCounter.previous()
 
+        if key == ord("+"):
+            self.exposureAdjust.increase_exposure(1)
+
+        if key == ord("-"):
+            self.exposureAdjust.decrease_exposure(1)
+
         if key == ord("p"):
            self.pauseRecording = not self.pauseRecording
 
@@ -240,7 +257,10 @@ class BirbWatcher:
         cv2.putText(histogram, f"(C)ontour (X): {self.contourCounter.label}", (10, 170), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         
         if self.pauseRecording:
-            cv2.putText(histogram, "PAUSED", (90, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+            cv2.putText(histogram, "PAUSED", (150, 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
+        
+        if self.exposureAdjust.isAdjustingExposure:
+            cv2.putText(histogram, "EXPOSURE", (150, 70), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
         return histogram
 
@@ -248,23 +268,21 @@ class BirbWatcher:
         halfHeight = int(resolution[1] / 2)
         blank = np.zeros((resolution[1],resolution[0],3), np.uint8)
 
-        now_hist = cv2.calcHist([now], [0], None, [256], [0,255])
-        cv2.normalize(now_hist, now_hist, 0, halfHeight, cv2.NORM_MINMAX)
-        now_data = np.int32(np.around(now_hist))
-        
-        max = now_data.max()
-        average = 0
-        total = 0
+        histogram = build_image_histogram(now)
+        average = calculate_exposure_from_histogram(histogram)
+        normalized = np.interp(histogram, (histogram.min(), histogram.max()), (0, halfHeight))
 
-        for x, y in enumerate(now_data):
-            average += y * x
-            total += y
+        for x, y in enumerate(normalized):
+            color = (255, 255, 255)
+            height = resolution[1] - y
 
-        average = int(average / total)
+            if x == self.exposureAdjust.targetExposure:
+                color = (0, 255, 0)
+                height = resolution[1] - 255
+            elif x == average:
+                color = (255, 255, 0)
+                height = resolution[1] - 255
 
-        for x, y in enumerate(now_data):
-            color = (0, 255, 0) if x == average else (255, 255, 255)
-            height = resolution[1] - 255 if x == average else resolution[1] - y;
             cv2.line(blank, (x, resolution[1]),(x, height), color)
 
         #compare = cv2.compareHist(key_hist, now_hist, cv2.HISTCMP_CHISQR)

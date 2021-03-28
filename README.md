@@ -1,3 +1,5 @@
+Version **1.0 Sparrow** is official! [Download ZIP repository here](https://github.com/jdpdev/birbcam/releases/tag/v1.0)
+
 # birbcam
 
 A Raspberry Pi-powered, change-activated camera for watching bird feeders.
@@ -33,12 +35,13 @@ imutils
 Important settings are saved in the `config.ini` file; some can be overridden by CLI arguments when running the app. Defaults are provided, but some will require local configuration.
 
 * `[Saving] Directory` - Where images taken by the camera are saved. It is suggested that you save to an external drive, rather than the SD card.
+* `[Saving] LivePictureInterval` - Number of seconds between each live picture, used by the server. Set to 0 to disable.
+* `[Saving] FullPictureInterval` - Number of seconds between each full picture. A full picture is not automatically taken after this interval, rather no full pictures will be taken by triggers before the interval has expired.
+* `[Saving] FullPictureResolution` - The resolution of a full picture. See `config.ini` for more informating relating to camera hardware.
+* `[Saving] LivePictureResolution` - The resolution of a live picture. See `config.ini` for more informating relating to camera hardware.
+* `[Detection] Threshold` - How strong the difference between the live and reference pictures must be to register as a changed pixel. Higher is less sensitive.
+* `[Detection] ContourArea` - How big a detected, continuous difference region must be to trigger a full picture. This balances out noise from the `Threshold` setting. Higher is less sensitive.
 * `[Debug] Enable` - Debug mode provides a live interface for monitoring the camera. This is suggested as currently there is no other way to change the camera exposure.
-
-#### TODO
-* Add setting for configuring sensitivity of the detector
-* Add setting for configuring full picture cooldown
-* Add setting for configuring live picture cooldown
 
 ## Running
 Run the app via the command line
@@ -74,8 +77,6 @@ If you are running Debug Mode, the final screen is the observing interface, whic
 - `Bottom Right` - The difference image clamped to a threshold value, highlighting significant changes.
 
 The camera starts paused: it will take live pictures, but will not take full pictures until unpaused.
-
-A running live picture is taken every 10 seconds. Full-resolution pictures will be taken no quicker than once every 10 seconds. (TODO: Add configuration of this behavior to `config.ini`)
 
 To pause/unpause recording, press `P`.
 To exit the app, press `Q`.

@@ -15,18 +15,24 @@ class PictureTaker:
 
     def take_picture(self, camera):
         if not self.readyForPicture: 
-            return False
+            return (False, None)
+
+        filename = self.fileNamer()
+        filepath = self.__save_path(filename)
 
         restoreResolution = camera.resolution
         camera.resolution = self.resolution
-        camera.capture(self.__save_path())
+        camera.capture(filepath)
         camera.resolution = restoreResolution
 
         self.__schedule_next_picture()
-        return True
+        return (True, filename)
 
-    def __save_path(self):
-        return f"{self.saveTo}/{self.fileNamer()}"
+    def __save_path(self, name = None):
+        if name == None:
+            name = self.fileNamer()
+            
+        return f"{self.saveTo}/{name}"
 
     def __schedule_next_picture(self):
         self.nextPictureTime = time() + self.cooldown
