@@ -102,6 +102,10 @@ class BirbConfig:
 
         return self.config["Debug"].getboolean("Enable", False)
 
+    @debugMode.setter
+    def debugMode(self, value: bool):
+        self.config["Debug"]["Enable"] = str(value)
+
     @property
     def logFile(self):
         loc = self.config["Debug"].get("LogFile", None)

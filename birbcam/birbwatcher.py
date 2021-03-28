@@ -88,8 +88,14 @@ class BirbWatcher:
                     cv2.imwrite(f"{self.config.saveTo}/thumb/{filename}", now)
 
             # visualize
+            window = (None, None)
             if self.config.debugMode:
-                self.__show_debug(contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture)
+                window = self.__show_debug(contours, masked, now, gray, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
+            else:
+                window = self.__show_control_console(gray, (600,400))
+
+            if window[0] != None:
+                cv2.imshow("console", window[1])
 
             if not self.__key_listener(camera):
                 return False
@@ -188,12 +194,19 @@ class BirbWatcher:
         if key == ord("p"):
            self.pauseRecording = not self.pauseRecording
 
+        if key == ord("d"):
+            self.config.debugMode = not self.config.debugMode
+
         if key == ord("q"):
             return False
 
         return True
 
-    def __show_debug(self, contours, masked, now, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture):
+    def __show_control_console(self, exposure, resolution):
+        canvas = self.__draw_control_panel(exposure, resolution)
+        return ('control console', canvas)
+
+    def __show_debug(self, contours, masked, now, exposure, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure):
         for c in contours:
             if cv2.contourArea(c) < self.contourCounter.value:
                 continue
@@ -205,7 +218,19 @@ class BirbWatcher:
         frameDelta = cv2.cvtColor(frameDelta, cv2.COLOR_GRAY2BGR)
         thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
-        histogram = self.__draw_exposure_histogram(cv2.cvtColor(now, cv2.COLOR_BGR2GRAY), mask_resolution)
+        histogram = self.__draw_control_panel(exposure, mask_resolution)
+
+        rtop = cv2.hconcat([masked, histogram])
+        rbottom = cv2.hconcat([frameDelta, thresh])
+        quad = cv2.vconcat([rtop, rbottom])
+        
+        if didTakeFullPicture[0] == True:
+            cv2.imwrite(f"{self.config.saveTo}/debug/{didTakeFullPicture[1]}", quad)
+
+        return ('debug console', quad)
+
+    def __draw_control_panel(self, exposure, mask_resolution):
+        histogram = self.__draw_exposure_histogram(exposure, mask_resolution)
 
         cv2.putText(histogram, f"(S)hutter (A): {self.shutterFlipper.label}", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
         cv2.putText(histogram, f"(E)xposure (W): {self.exposureFlipper.label}", (10, 50), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
@@ -217,14 +242,7 @@ class BirbWatcher:
         if self.pauseRecording:
             cv2.putText(histogram, "PAUSED", (90, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 2)
 
-        rtop = cv2.hconcat([masked, histogram])
-        rbottom = cv2.hconcat([frameDelta, thresh])
-        quad = cv2.vconcat([rtop, rbottom])
-        cv2.imshow('processors', quad)
-
-        if didTakeFullPicture:
-            stamp = filename_filestamp()
-            cv2.imwrite(f"{self.config.saveTo}/debug/{stamp}", quad)
+        return histogram
 
     def __draw_exposure_histogram(self, now, resolution):
         halfHeight = int(resolution[1] / 2)
