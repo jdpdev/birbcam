@@ -41,7 +41,10 @@ Important settings are saved in the `config.ini` file; some can be overridden by
 * `[Saving] LivePictureResolution` - The resolution of a live picture. See `config.ini` for more informating relating to camera hardware.
 * `[Detection] Threshold` - How strong the difference between the live and reference pictures must be to register as a changed pixel. Higher is less sensitive.
 * `[Detection] ContourArea` - How big a detected, continuous difference region must be to trigger a full picture. This balances out noise from the `Threshold` setting. Higher is less sensitive.
-* `[Debug] Enable` - Debug mode provides a live interface for monitoring the camera. This is suggested as currently there is no other way to change the camera exposure.
+* `[Detection] ExposureInterval` - Number of seconds between exposure checks
+* `[Detection] ExposureLevel` - Target exposure level
+* `[Detection] ExposureError` - Acceptable error +/- `ExposureLevel`
+* `[Debug] Enable` - Debug mode shows live images from the camera and detector. Can be toggled when running with `D` key.
 
 ## Running
 Run the app via the command line
