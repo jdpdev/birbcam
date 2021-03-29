@@ -124,8 +124,9 @@ class BirbWatcher:
                 return False
 
     def __classify_image(self, image):
-        results = list(self.classifier.classify_image(image))
-        return (results[0].label != "None" and results[0].confidence > 0.5, results)
+        classify = list(self.classifier.classify_image(image))
+        results = classify.get_top_results(5)
+        return (results[0].label != "None" and results[0].confidence > 0.30, results)
 
     def __take_preview(self, rawCapture, mask_bounds):
         now = rawCapture.array
