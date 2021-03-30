@@ -6,6 +6,8 @@ A Raspberry Pi-powered, change-activated camera for watching bird feeders.
 
 Check out [Birbserver](https://github.com/jdpdev/birbserver), a web interface for your Birbcam designed to run on the same RPI.
 
+[Birbvision](https://github.com/jdpdev/birbvision) is the prototype machine learning identifier to be introduced in [Birbcam v2.0](https://github.com/jdpdev/birbcam/tree/v2.0-birbvision-dev)
+
 ## Set Up
 ### Hardware
 
