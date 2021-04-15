@@ -102,12 +102,12 @@ class BirbWatcher:
                 classifyResults = classify[1]
 
                 if classify[0]:
-                    logging.info(f"[birbvision] shoot: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
+                    #logging.info(f"[birbvision] shoot: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
                     didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
                     if didTakeFullPicture[0]:
                         cv2.imwrite(f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}", now)
                 else:
-                    logging.info(f"[birbvision] ignore: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
+                #    logging.info(f"[birbvision] ignore: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
                     self.fullPictureTaker.reset_time()
 
             # visualize
