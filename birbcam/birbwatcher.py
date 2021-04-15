@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from setproctitle import setproctitle
 from birbvision import ClassifyBird
+from .picturelogger import PictureLogger
 
 from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live_picture
 from .birbconfig import BirbConfig
@@ -60,6 +61,7 @@ class BirbWatcher:
         self.pauseRecording = True
 
         self.classifier = ClassifyBird()
+        self.pictureLogger = PictureLogger(f"{config.saveTo}/pictures.txt")
         
     def run(self, camera, mask):
         camera.shutter_speed = self.shutterFlipper.value
@@ -105,7 +107,9 @@ class BirbWatcher:
                     #logging.info(f"[birbvision] shoot: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
                     didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
                     if didTakeFullPicture[0]:
-                        cv2.imwrite(f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}", now)
+                        thumbfile = f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}"
+                        cv2.imwrite(thumbfile, now)
+                        self.pictureLogger.log_picture(didTakeFullPicture[2], thumbfile, classifyResults)
                 else:
                 #    logging.info(f"[birbvision] ignore: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
                     self.fullPictureTaker.reset_time()
@@ -124,7 +128,7 @@ class BirbWatcher:
                 return False
 
     def __classify_image(self, image):
-        classify = list(self.classifier.classify_image(image))
+        classify = self.classifier.classify_image(image)
         results = classify.get_top_results(5)
         return (results[0].label != "None" and results[0].confidence > 0.30, results)
 

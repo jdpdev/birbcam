@@ -26,7 +26,7 @@ class PictureTaker:
         camera.resolution = restoreResolution
 
         self.__schedule_next_picture()
-        return (True, filename)
+        return (True, filename, filepath)
 
     def __save_path(self, name = None):
         if name == None:
