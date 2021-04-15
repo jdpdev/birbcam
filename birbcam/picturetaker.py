@@ -34,6 +34,9 @@ class PictureTaker:
             
         return f"{self.saveTo}/{name}"
 
+    def reset_time(self):
+        self.__schedule_next_picture()
+
     def __schedule_next_picture(self):
         self.nextPictureTime = time() + self.cooldown
 
