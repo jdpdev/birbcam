@@ -109,7 +109,7 @@ class BirbWatcher:
                     if didTakeFullPicture[0]:
                         thumbfile = f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}"
                         cv2.imwrite(thumbfile, now)
-                        self.pictureLogger.log_picture(didTakeFullPicture[2], thumbfile, classifyResults)
+                        self.pictureLogger.log_picture(didTakeFullPicture[2], thumbfile, classifyResults, self.shutterFlipper.label, self.isoFlipper.label)
                 else:
                 #    logging.info(f"[birbvision] ignore: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
                     self.fullPictureTaker.reset_time()
