@@ -1,5 +1,7 @@
 Version **1.0 Sparrow** is official! [Download ZIP repository here](https://github.com/jdpdev/birbcam/releases/tag/v1.0)
 
+Version **2.0 Robin** is in beta, introducing BIRBVISION to identify bird species in your pictures. [Download ZIP repository here](https://github.com/jdpdev/birbcam/releases/tag/v2.0-beta) 
+
 # birbcam
 
 A Raspberry Pi-powered, change-activated camera for watching bird feeders.
