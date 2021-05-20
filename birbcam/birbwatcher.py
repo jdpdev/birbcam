@@ -6,8 +6,11 @@ import cv2
 import numpy as np
 import imutils
 import sched
+import logging
 from datetime import datetime
 from setproctitle import setproctitle
+from birbvision import ClassifyBird
+from .picturelogger import PictureLogger
 
 from birbcam.picturetaker import PictureTaker, filename_filestamp, filename_live_picture
 from .birbconfig import BirbConfig
@@ -56,6 +59,9 @@ class BirbWatcher:
             margin=config.exposureError
         )
         self.pauseRecording = True
+
+        self.classifier = ClassifyBird()
+        self.pictureLogger = PictureLogger(f"{config.saveTo}/pictures.txt")
         
     def run(self, camera, mask):
         camera.shutter_speed = self.shutterFlipper.value
@@ -90,18 +96,28 @@ class BirbWatcher:
             
             # take our pictures if it's time
             didTakeFullPicture = (False, None)
+            classifyResults = []
             self.livePictureTaker.take_picture(camera)
             
-            if not self.pauseRecording and not isCheckingExposure and shouldTrigger: 
-                didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
+            if not self.pauseRecording and not isCheckingExposure and shouldTrigger and self.fullPictureTaker.readyForPicture: 
+                classify = self.__classify_image(now)
+                classifyResults = classify[1]
 
-                if didTakeFullPicture[0]:
-                    cv2.imwrite(f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}", now)
+                if classify[0]:
+                    #logging.info(f"[birbvision] shoot: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
+                    didTakeFullPicture = self.fullPictureTaker.take_picture(camera)
+                    if didTakeFullPicture[0]:
+                        thumbfile = f"{self.config.saveTo}/thumb/{didTakeFullPicture[1]}"
+                        cv2.imwrite(thumbfile, now)
+                        self.pictureLogger.log_picture(didTakeFullPicture[2], thumbfile, classifyResults, self.shutterFlipper.label, self.isoFlipper.label)
+                else:
+                #    logging.info(f"[birbvision] ignore: {classifyResults[0].label} @ {classifyResults[0].confidence:.2f}")
+                    self.fullPictureTaker.reset_time()
 
             # visualize
             window = (None, None)
             if self.config.debugMode:
-                window = self.__show_debug(contours, masked, now, gray, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure)
+                window = self.__show_debug(contours, masked, now, gray, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure, classifyResults)
             else:
                 window = self.__show_control_console(gray, (600,400))
 
@@ -110,6 +126,11 @@ class BirbWatcher:
 
             if not self.__key_listener(camera):
                 return False
+
+    def __classify_image(self, image):
+        classify = self.classifier.classify_image(image)
+        results = classify.get_top_results(5)
+        return (results[0].label != "None" and results[0].confidence > 0.30, results)
 
     def __take_preview(self, rawCapture, mask_bounds):
         now = rawCapture.array
@@ -225,7 +246,7 @@ class BirbWatcher:
         canvas = self.__draw_control_panel(exposure, resolution)
         return ('control console', canvas)
 
-    def __show_debug(self, contours, masked, now, exposure, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure):
+    def __show_debug(self, contours, masked, now, exposure, thresh, convertAvg, mask_resolution, frameDelta, didTakeFullPicture, isCheckingExposure, classifyResults):
         for c in contours:
             if cv2.contourArea(c) < self.contourCounter.value:
                 continue
@@ -244,7 +265,19 @@ class BirbWatcher:
         quad = cv2.vconcat([rtop, rbottom])
         
         if didTakeFullPicture[0] == True:
-            cv2.imwrite(f"{self.config.saveTo}/debug/{didTakeFullPicture[1]}", quad)
+            bvdebug = np.zeros((mask_resolution[1],mask_resolution[0],3), np.uint8)
+
+            y = 20
+            yStep = 20
+            for r in classifyResults:
+                cv2.putText(bvdebug, f"{r.confidence:.2f}: {r.label}", (10, y), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+                y += yStep
+
+            dtop = cv2.hconcat([masked, bvdebug])
+            dbottom = cv2.hconcat([frameDelta, thresh])
+            dquad = cv2.vconcat([dtop, dbottom])
+
+            cv2.imwrite(f"{self.config.saveTo}/debug/{didTakeFullPicture[1]}", dquad)
 
         return ('debug console', quad)
 
