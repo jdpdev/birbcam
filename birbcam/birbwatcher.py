@@ -128,9 +128,28 @@ class BirbWatcher:
                 return False
 
     def __classify_image(self, image):
-        classify = self.classifier.classify_image(image)
-        results = classify.get_top_results(5)
-        return (results[0].label != "None" and results[0].confidence > 0.30, results)
+        slices = self.__split_image_to_classify(image)
+        foundBird = False
+        results = []
+
+        for slice in slices:
+            classify = self.classifier.classify_image(slice)
+            r = classify.get_top_results(5)
+            foundBird = foundBird or (r[0].label != "None" and r[0].confidence > 0.30)
+            results.extend(r)
+        
+        return (foundBird, results)
+
+    def __split_image_to_classify(self, image):
+        width = image.shape[1]
+        splitWidth = width / 2
+        centerStart = splitWidth - (splitWidth / 2)
+
+        left = image[:, :splitWidth]
+        center = image[:, centerStart:centerStart + splitWidth]
+        right = image[:, splitWidth:]
+
+        return [left, center, right]
 
     def __take_preview(self, rawCapture, mask_bounds):
         now = rawCapture.array
