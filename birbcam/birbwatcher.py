@@ -142,8 +142,8 @@ class BirbWatcher:
 
     def __split_image_to_classify(self, image):
         width = image.shape[1]
-        splitWidth = width / 2
-        centerStart = splitWidth - (splitWidth / 2)
+        splitWidth = int(width / 2)
+        centerStart = splitWidth - int(splitWidth / 2)
 
         left = image[:, :splitWidth]
         center = image[:, centerStart:centerStart + splitWidth]
