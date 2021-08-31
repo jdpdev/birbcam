@@ -135,8 +135,10 @@ class BirbWatcher:
         for slice in slices:
             classify = self.classifier.classify_image(slice)
             r = classify.get_top_results(5)
-            foundBird = foundBird or (r[0].label != "None" and r[0].confidence > 0.30)
             results.extend(r)
+
+        results.sort(key=lambda r: r.confidence)
+        foundBird = len(results) > 0 and results[0].confidence >= 0.3
         
         return (foundBird, results)
 
