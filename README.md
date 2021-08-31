@@ -1,5 +1,3 @@
-Version **1.0 Sparrow** is official! [Download ZIP repository here](https://github.com/jdpdev/birbcam/releases/tag/v1.0)
-
 # birbcam
 
 A Raspberry Pi-powered, change-activated camera for watching bird feeders.
@@ -20,15 +18,13 @@ Check out [Birbserver](https://github.com/jdpdev/birbserver), a web interface fo
 * External USB Storage - Protects the boot SD card from degredation, and provides the convience of being able to plug into another computer to work on your pictures.
 * Longer Lenses - [Arducam](https://www.arducam.com/product-category/lenses/) sells lenses for the HQ camera with longer focal lengths, but they require color correction that is not yet available in Birbcam.
 
-### Environment
+### Installation
 
-Requires the following Python packages, available on PIP
-```
-picamerax
-opecv-python
-numpy
-imutils
-```
+> **!! Birbcam has been developed and tested on Raspbian Buster running Python 3.7 !!**
+
+Run pip using the requirements file to install dependencies
+
+```pip install -r requirements.txt```
 
 ### config.ini
 
@@ -47,9 +43,9 @@ Important settings are saved in the `config.ini` file; some can be overridden by
 * `[Debug] Enable` - Debug mode shows live images from the camera and detector. Can be toggled when running with `D` key.
 
 ## Running
-Run the app via the command line
+A shell file is included (but not required) to start the app, and is suitable to use with a desktop shortcut.
 
-```python3 birbcam.py```
+```./birbcam.sh```
 
 ### Focus Assist
 The first screen that opens is a live view from the camera to help you aim the camera, and set the focus. 
