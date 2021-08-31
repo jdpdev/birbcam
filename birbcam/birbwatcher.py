@@ -45,7 +45,11 @@ class BirbWatcher:
         )
 
         self.shutterFlipper = OptionFlipper(shutterSpeeds, 6, shutterSpeedNames)
+        self.shutterFlipper.set_ideals(6, 11)
+
         self.isoFlipper = OptionFlipper(isoSpeeds, 1)
+        self.isoFlipper.set_ideals(0, 3)
+
         self.exposureFlipper = OptionFlipper(exposureComps, 2)
         self.wbFlipper = OptionFlipper(whiteBalanceModes)
         self.thresholdCounter = OptionCounter(0, 255, 5, self.config.threshold)
@@ -137,7 +141,13 @@ class BirbWatcher:
             r = classify.get_top_results(5)
             results.extend(r)
 
-        results.sort(key=lambda r: r.confidence)
+        results.sort(key=lambda r: r.confidence, reverse=True)
+        logging.info(f"[results] {len(results)}")
+
+        if (len(results) > 0):
+            logging.info(f"[__classify_image] {results[0].confidence} ({results[0].label})")
+            logging.info(f"[__classify_image] {results[1].confidence} ({results[1].label})")
+        
         foundBird = len(results) > 0 and results[0].confidence >= 0.3
         
         return (foundBird, results)
